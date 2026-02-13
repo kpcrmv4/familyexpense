@@ -1,0 +1,24 @@
+{
+  "name": "family-expense-tracker",
+  "version": "1.0.0",
+  "description": "Family Expense Tracker LINE Bot",
+  "private": true,
+  "scripts": {
+    "dev": "vercel dev",
+    "build": "tsc",
+    "generate-richmenu": "npx ts-node scripts/generate-richmenu-image.ts",
+    "setup-richmenu": "npx ts-node scripts/setup-richmenu.ts"
+  },
+  "dependencies": {
+    "@google/generative-ai": "^0.21.0",
+    "@line/bot-sdk": "^9.6.0",
+    "@supabase/supabase-js": "^2.47.0",
+    "canvas": "^3.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.7.0",
+    "vercel": "^39.0.0"
+  }
+}
