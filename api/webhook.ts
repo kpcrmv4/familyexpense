@@ -4,6 +4,11 @@ import { channelSecret } from '../src/config/line';
 import { handleTextMessage, handleImageMessage, handlePostback, handleFollow, handleJoin } from '../src/handlers';
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  // GET = health check (for testing + LINE webhook verify URL check)
+  if (req.method === 'GET') {
+    return res.status(200).json({ status: 'ok', message: 'Family Expense Tracker Webhook' });
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
