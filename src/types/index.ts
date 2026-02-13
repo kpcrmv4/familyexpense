@@ -8,6 +8,13 @@ export interface User {
   created_at: string;
 }
 
+export interface UserAccount {
+  id: string;
+  user_id: string;
+  account_name: string;
+  created_at: string;
+}
+
 export interface Category {
   id: string;
   user_id: string;
@@ -62,6 +69,7 @@ export interface TransactionDraft {
   category_name?: string;
   source: 'text' | 'slip';
   suggested_category?: string;
+  transaction_date?: string; // YYYY-MM-DD — ใช้สำหรับสลิปที่วันที่ต่างจากวันนี้
 }
 
 export interface RecurringDraft {
@@ -94,6 +102,7 @@ export interface GeminiNLUResult {
 export interface GeminiOCRResult {
   amount: number;
   description: string;
+  sender: string;
   recipient: string;
   bank: string;
   date: string;
@@ -140,6 +149,9 @@ export type PostbackAction =
   | { action: 'recurring_end_month_none' }
   | { action: 'reminder_paid'; id: string }
   | { action: 'reminder_snooze'; id: string; days: number }
+  | { action: 'slip_select_date'; date: 'slip' | 'today' }
+  | { action: 'slip_confirm_type'; type: 'income' | 'expense' }
+  | { action: 'slip_reject_type' }
   | { action: 'view_summary' }
   | { action: 'view_summary_month'; year: number; month: number }
   | { action: 'ai_advice' }

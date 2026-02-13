@@ -118,6 +118,25 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       await recurringFlow.handleConfirmAdd(replyToken, lineUserId);
       break;
 
+    // === Slip: Date / Account Detection ===
+    case 'slip_select_date':
+      if (currentState?.state === 'slip_select_date') {
+        await transactionFlow.handleSlipDateSelect(replyToken, lineUserId, action.date, currentState.data);
+      }
+      break;
+
+    case 'slip_confirm_type':
+      if (currentState?.state === 'slip_confirm_type') {
+        await transactionFlow.handleSlipConfirmType(replyToken, lineUserId, action.type, currentState.data);
+      }
+      break;
+
+    case 'slip_reject_type':
+      if (currentState?.state === 'slip_confirm_type') {
+        await transactionFlow.handleSlipRejectType(replyToken, lineUserId, currentState.data);
+      }
+      break;
+
     // === Reminder ===
     case 'reminder_paid':
       await recurringFlow.handleReminderPaid(replyToken, lineUserId, action.id);

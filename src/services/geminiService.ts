@@ -47,7 +47,8 @@ export async function parseSlipImage(imageBuffer: Buffer): Promise<GeminiOCRResu
 {
   "amount": จำนวนเงินที่โอน (ตัวเลข),
   "description": "คำอธิบายสั้นๆ เช่น โอนเงินให้ [ชื่อผู้รับ]",
-  "recipient": "ชื่อผู้รับเงิน",
+  "sender": "ชื่อผู้โอนเงิน (ชื่อด้านบนของสลิป / ผู้ส่ง / From)",
+  "recipient": "ชื่อผู้รับเงิน (ชื่อด้านล่างของสลิป / ผู้รับ / To)",
   "bank": "ชื่อธนาคาร",
   "date": "วันที่ทำรายการ (YYYY-MM-DD)",
   "confidence": 0.0-1.0
@@ -55,8 +56,11 @@ export async function parseSlipImage(imageBuffer: Buffer): Promise<GeminiOCRResu
 
 กฎ:
 - ดึงจำนวนเงินจากสลิป ถ้าอ่านไม่ได้ให้ amount เป็น 0
-- ถ้าอ่านผู้รับไม่ได้ให้ใส่ "ไม่ระบุ"
-- ถ้าอ่านธนาคารไม่ได้ให้ใส่ "ไม่ระบุ"`;
+- sender คือชื่อผู้โอน/ผู้ส่ง มักอยู่ด้านบนของสลิป (From/จาก)
+- recipient คือชื่อผู้รับ มักอยู่ด้านล่างของสลิป (To/ไปยัง)
+- ถ้าอ่านชื่อไม่ได้ให้ใส่ "ไม่ระบุ"
+- ถ้าอ่านธนาคารไม่ได้ให้ใส่ "ไม่ระบุ"
+- date ให้ใช้รูปแบบ YYYY-MM-DD เท่านั้น`;
 
   const imagePart = {
     inlineData: {
@@ -75,6 +79,7 @@ export async function parseSlipImage(imageBuffer: Buffer): Promise<GeminiOCRResu
     return {
       amount: 0,
       description: 'สลิปโอนเงิน',
+      sender: 'ไม่ระบุ',
       recipient: 'ไม่ระบุ',
       bank: 'ไม่ระบุ',
       date: new Date().toISOString().split('T')[0],

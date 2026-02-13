@@ -1,7 +1,7 @@
 import { Category, ThemeColors, TransactionDraft } from '../types';
 import { createFlexMessage, createBubble, createHeader, createButton, createTextRow, createSeparator, createSpacer } from './flexMessages';
 import { getGenderTheme, getTransactionColors } from '../utils/themeColors';
-import { formatCurrency } from '../utils/formatters';
+import { formatCurrency, formatThaiDate } from '../utils/formatters';
 
 export function selectTypeMessage(draft: TransactionDraft, theme: ThemeColors): any {
   return createFlexMessage('เลือกประเภท', createBubble({
@@ -171,6 +171,10 @@ export function confirmTransactionMessage(
         createTextRow('หมวดหมู่', draft.category_name || 'ไม่ระบุ'),
         createSpacer('xs'),
         createTextRow('แหล่งที่มา', draft.source === 'slip' ? '📸 สลิป' : '💬 พิมพ์'),
+        ...(draft.transaction_date ? [
+          createSpacer('xs'),
+          createTextRow('วันที่', formatThaiDate(draft.transaction_date)),
+        ] : []),
       ],
       paddingAll: 'xl',
     },
@@ -243,8 +247,11 @@ export function transactionSuccessMessage(
   }));
 }
 
+// ===== Slip: No account match → ask type (updated: show sender) =====
+
 export function slipParsedMessage(
   amount: number,
+  sender: string,
   recipient: string,
   bank: string,
   theme: ThemeColors
@@ -264,6 +271,8 @@ export function slipParsedMessage(
           align: 'center',
         },
         createSpacer('md'),
+        createTextRow('ผู้โอน', sender),
+        createSpacer('xs'),
         createTextRow('ผู้รับ', recipient),
         createSpacer('xs'),
         createTextRow('ธนาคาร', bank),
@@ -284,6 +293,201 @@ export function slipParsedMessage(
       contents: [
         createButton('📤 รายจ่าย', JSON.stringify({ action: 'select_type', type: 'expense' }), 'primary', '#EF4444'),
         createButton('📥 รายรับ', JSON.stringify({ action: 'select_type', type: 'income' }), 'primary', '#10B981'),
+      ],
+      paddingAll: 'lg',
+      spacing: 'sm',
+    },
+    theme,
+  }));
+}
+
+// ===== Slip: Date mismatch → ask which date to use =====
+
+export function slipDateMismatchMessage(
+  slipDate: string,
+  today: string,
+  theme: ThemeColors
+): any {
+  return createFlexMessage('วันที่ไม่ตรงกัน', createBubble({
+    header: createHeader('วันที่ไม่ตรงกัน', '', '📅'),
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'text',
+          text: 'วันที่ในสลิปไม่ตรงกับวันนี้',
+          size: 'sm',
+          color: '#6B7280',
+          align: 'center',
+        },
+        createSpacer('md'),
+        createTextRow('วันที่ในสลิป', formatThaiDate(slipDate)),
+        createSpacer('xs'),
+        createTextRow('วันนี้', formatThaiDate(today)),
+        createSpacer('md'),
+        {
+          type: 'text',
+          text: 'ต้องการบันทึกเป็นวันที่ไหน?',
+          size: 'sm',
+          color: '#6B7280',
+          align: 'center',
+        },
+      ],
+      paddingAll: 'xl',
+    },
+    footer: {
+      type: 'box',
+      layout: 'horizontal',
+      contents: [
+        createButton(
+          '📅 วันในสลิป',
+          JSON.stringify({ action: 'slip_select_date', date: 'slip' }),
+          'primary',
+          theme.primary
+        ),
+        createButton(
+          '📅 วันนี้',
+          JSON.stringify({ action: 'slip_select_date', date: 'today' }),
+          'secondary'
+        ),
+      ],
+      paddingAll: 'lg',
+      spacing: 'sm',
+    },
+    theme,
+  }));
+}
+
+// ===== Slip: AI suggests type (account name matched) =====
+
+export function slipSuggestTypeMessage(
+  amount: number,
+  sender: string,
+  recipient: string,
+  bank: string,
+  suggestedType: 'income' | 'expense',
+  matchedName: string,
+  theme: ThemeColors
+): any {
+  const typeLabel = suggestedType === 'income' ? '📥 รายรับ' : '📤 รายจ่าย';
+  const typeColor = suggestedType === 'income' ? '#10B981' : '#EF4444';
+  const confirmLabel = suggestedType === 'income' ? '✅ ใช่ รายรับ' : '✅ ใช่ รายจ่าย';
+
+  return createFlexMessage('อ่านสลิปสำเร็จ', createBubble({
+    header: createHeader('อ่านสลิปสำเร็จ! 📸', ''),
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'text',
+          text: `฿${formatCurrency(amount)}`,
+          size: 'xxl',
+          weight: 'bold',
+          color: theme.primary,
+          align: 'center',
+        },
+        createSpacer('md'),
+        createTextRow('ผู้โอน', sender),
+        createSpacer('xs'),
+        createTextRow('ผู้รับ', recipient),
+        createSpacer('xs'),
+        createTextRow('ธนาคาร', bank),
+        createSpacer('md'),
+        createSeparator(),
+        createSpacer('md'),
+        {
+          type: 'text',
+          text: `🤖 AI แนะนำ: ${typeLabel}`,
+          size: 'md',
+          weight: 'bold',
+          color: typeColor,
+          align: 'center',
+        },
+        {
+          type: 'text',
+          text: `(ตรงกับบัญชีของคุณ: ${matchedName})`,
+          size: 'xxs',
+          color: '#9CA3AF',
+          align: 'center',
+        },
+      ],
+      paddingAll: 'xl',
+    },
+    footer: {
+      type: 'box',
+      layout: 'horizontal',
+      contents: [
+        createButton(
+          confirmLabel,
+          JSON.stringify({ action: 'slip_confirm_type', type: suggestedType }),
+          'primary',
+          typeColor
+        ),
+        createButton(
+          '❌ ไม่ใช่',
+          JSON.stringify({ action: 'slip_reject_type' }),
+          'secondary'
+        ),
+      ],
+      paddingAll: 'lg',
+      spacing: 'sm',
+    },
+    theme,
+  }));
+}
+
+// ===== Slip: Flip type after rejection =====
+
+export function slipFlipTypeMessage(
+  flippedType: 'income' | 'expense',
+  theme: ThemeColors
+): any {
+  const typeLabel = flippedType === 'income' ? '📥 รายรับ' : '📤 รายจ่าย';
+  const typeColor = flippedType === 'income' ? '#10B981' : '#EF4444';
+  const confirmLabel = flippedType === 'income' ? '✅ ใช่ รายรับ' : '✅ ใช่ รายจ่าย';
+
+  return createFlexMessage('เปลี่ยนประเภท', createBubble({
+    header: createHeader('เปลี่ยนประเภท', '', '🔄'),
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'text',
+          text: `เปลี่ยนเป็น ${typeLabel}`,
+          size: 'lg',
+          weight: 'bold',
+          color: typeColor,
+          align: 'center',
+        },
+        createSpacer('sm'),
+        {
+          type: 'text',
+          text: 'ใช่ไหม?',
+          size: 'sm',
+          color: '#6B7280',
+          align: 'center',
+        },
+      ],
+      paddingAll: 'xl',
+    },
+    footer: {
+      type: 'box',
+      layout: 'horizontal',
+      contents: [
+        createButton(
+          confirmLabel,
+          JSON.stringify({ action: 'slip_confirm_type', type: flippedType }),
+          'primary',
+          typeColor
+        ),
+        createButton(
+          '❌ ยกเลิก',
+          JSON.stringify({ action: 'cancel' }),
+          'secondary'
+        ),
       ],
       paddingAll: 'lg',
       spacing: 'sm',
