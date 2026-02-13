@@ -4,6 +4,10 @@
 -- WARNING: ข้อมูลทั้งหมดจะหายไป!
 -- ============================================================
 
+-- ลบ trigger/function ก่อน (ต้องลบก่อน drop table)
+DROP TRIGGER IF EXISTS update_conversation_state_updated_at ON conversation_state;
+DROP FUNCTION IF EXISTS update_updated_at_column();
+
 -- ลบตารางทั้งหมด (ลำดับสำคัญ เพราะ foreign key)
 DROP TABLE IF EXISTS user_accounts CASCADE;
 DROP TABLE IF EXISTS conversation_state CASCADE;
@@ -11,10 +15,6 @@ DROP TABLE IF EXISTS transactions CASCADE;
 DROP TABLE IF EXISTS recurring_expenses CASCADE;
 DROP TABLE IF EXISTS categories CASCADE;
 DROP TABLE IF EXISTS users CASCADE;
-
--- ลบ trigger/function เก่า
-DROP TRIGGER IF EXISTS update_conversation_state_updated_at ON conversation_state;
-DROP FUNCTION IF EXISTS update_updated_at_column();
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
