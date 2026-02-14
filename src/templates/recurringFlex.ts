@@ -881,7 +881,7 @@ export function recurringEditMessage(item: RecurringExpense, theme: ThemeColors)
 
 export function debtAskTotalDebtMessage(name: string, theme: ThemeColors): any {
   return createFlexMessage('ระบุยอดหนี้', createBubble({
-    header: createHeader('เพิ่มหนี้สิน', 'ขั้นตอนที่ 3/4', '💳'),
+    header: createHeader('เพิ่มหนี้สิน', 'ขั้นตอนที่ 3/5', '💳'),
     body: {
       type: 'box',
       layout: 'vertical',
@@ -921,10 +921,55 @@ export function debtAskTotalDebtMessage(name: string, theme: ThemeColors): any {
   }));
 }
 
+// ===== Debt: Ask Minimum Payment =====
+
+export function debtAskMinPaymentMessage(name: string, totalDebt: number, theme: ThemeColors): any {
+  return createFlexMessage('ระบุยอดขั้นต่ำ', createBubble({
+    header: createHeader('เพิ่มหนี้สิน', 'ขั้นตอนที่ 4/5', '💳'),
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        createTextRow('ชื่อ', name),
+        createSpacer('xs'),
+        createTextRow('ยอดหนี้', `฿${formatCurrency(totalDebt)}`),
+        createSpacer('md'),
+        {
+          type: 'text',
+          text: 'ยอดชำระขั้นต่ำต่อเดือนเท่าไหร่? (บาท)',
+          size: 'sm',
+          color: '#6B7280',
+          align: 'center',
+          wrap: true,
+        },
+        createSpacer('sm'),
+        {
+          type: 'text',
+          text: 'พิมพ์ตัวเลข เช่น 3000',
+          size: 'xxs',
+          color: '#9CA3AF',
+          align: 'center',
+        },
+      ],
+      paddingAll: 'xl',
+    },
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        createButton('❌ ยกเลิก', JSON.stringify({ action: 'cancel' }), 'secondary'),
+      ],
+      paddingAll: 'lg',
+    },
+    theme,
+  }));
+}
+
 // ===== Debt: Confirm =====
 
 export function debtConfirmMessage(data: Record<string, any>, theme: ThemeColors): any {
   const totalDebt = data.total_debt || 0;
+  const minPayment = data.amount || 0;
 
   return createFlexMessage('ยืนยันหนี้สิน', createBubble({
     header: createHeader('ยืนยันรายการหนี้', '', '💳'),
@@ -964,7 +1009,7 @@ export function debtConfirmMessage(data: Record<string, any>, theme: ThemeColors
         createSpacer('xs'),
         createTextRow('วันครบกำหนด', `ทุกวันที่ ${data.due_day}`),
         createSpacer('xs'),
-        createTextRow('จ่ายต่อเดือน', 'ไม่คงที่ (ระบุตอนชำระ)'),
+        createTextRow('ขั้นต่ำ/เดือน', `฿${formatCurrency(minPayment)}`),
       ],
       paddingAll: 'xl',
     },
@@ -986,6 +1031,7 @@ export function debtConfirmMessage(data: Record<string, any>, theme: ThemeColors
 
 export function debtSuccessMessage(data: Record<string, any>, theme: ThemeColors): any {
   const totalDebt = data.total_debt || 0;
+  const minPayment = data.amount || 0;
   const motivational = getDebtMotivationalMessage(totalDebt, 0);
 
   return createFlexMessage('เพิ่มหนี้สำเร็จ!', createBubble({
@@ -1008,6 +1054,13 @@ export function debtSuccessMessage(data: Record<string, any>, theme: ThemeColors
           size: 'lg',
           weight: 'bold',
           color: '#EF4444',
+          align: 'center',
+        },
+        {
+          type: 'text',
+          text: `ขั้นต่ำ ฿${formatCurrency(minPayment)}/เดือน`,
+          size: 'sm',
+          color: '#F59E0B',
           align: 'center',
         },
         createSpacer('sm'),
@@ -1079,6 +1132,8 @@ export function debtEditMessage(item: RecurringExpense, theme: ThemeColors): any
         createTextRow('จ่ายแล้ว', `฿${formatCurrency(totalPaid)}`),
         createSpacer('xs'),
         createTextRow('คงเหลือ', `฿${formatCurrency(remaining)}`),
+        createSpacer('xs'),
+        createTextRow('ขั้นต่ำ/เดือน', Number(item.amount) > 0 ? `฿${formatCurrency(Number(item.amount))}` : '-'),
         createSpacer('xs'),
         createTextRow('วันครบกำหนด', `วันที่ ${item.due_day}`),
         createSpacer('xs'),
