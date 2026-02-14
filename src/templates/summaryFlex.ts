@@ -315,6 +315,110 @@ function recurringTimelineBubble(
   });
 }
 
+// ===== Bubble 3: Savings (Piggy Bank) =====
+
+function savingsBubble(
+  thisMonthBalance: number,
+  accumulatedBalance: number,
+  theme: ThemeColors,
+  displayMonth: string
+): any {
+  const totalSavings = thisMonthBalance + accumulatedBalance;
+
+  const balanceColor = (v: number) => v >= 0 ? '#10B981' : '#EF4444';
+  const balanceBg = (v: number) => v >= 0 ? '#D1FAE5' : '#FEE2E2';
+  const sign = (v: number) => v >= 0 ? '+' : '';
+
+  return createBubble({
+    header: createHeader('กระปุกออมสิน', displayMonth, '🏦'),
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        // Total savings (hero)
+        {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            { type: 'text', text: '🏦', size: '3xl', align: 'center' },
+            createSpacer('sm'),
+            { type: 'text', text: 'ยอดสะสมรวม', size: 'xs', color: '#6B7280', align: 'center' },
+            {
+              type: 'text',
+              text: `฿${formatCurrency(totalSavings)}`,
+              size: 'xxl',
+              weight: 'bold',
+              color: balanceColor(totalSavings),
+              align: 'center',
+            },
+          ],
+          backgroundColor: balanceBg(totalSavings),
+          cornerRadius: 'lg',
+          paddingAll: 'lg',
+        },
+        createSpacer('md'),
+        createSeparator(),
+        createSpacer('md'),
+        // This month
+        {
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            {
+              type: 'box',
+              layout: 'vertical',
+              contents: [
+                { type: 'text', text: '📅 เดือนนี้', size: 'xxs', color: '#6B7280', align: 'center' },
+                {
+                  type: 'text',
+                  text: `${sign(thisMonthBalance)}฿${formatCurrency(Math.abs(thisMonthBalance))}`,
+                  size: 'sm',
+                  weight: 'bold',
+                  color: balanceColor(thisMonthBalance),
+                  align: 'center',
+                },
+                { type: 'text', text: 'หลังหักรายจ่ายแล้ว', size: 'xxs', color: '#9CA3AF', align: 'center', wrap: true },
+              ],
+              flex: 1,
+            },
+            {
+              type: 'box',
+              layout: 'vertical',
+              contents: [
+                { type: 'text', text: '📦 ยกมา', size: 'xxs', color: '#6B7280', align: 'center' },
+                {
+                  type: 'text',
+                  text: `฿${formatCurrency(accumulatedBalance)}`,
+                  size: 'sm',
+                  weight: 'bold',
+                  color: balanceColor(accumulatedBalance),
+                  align: 'center',
+                },
+                { type: 'text', text: 'สะสมเดือนก่อนๆ', size: 'xxs', color: '#9CA3AF', align: 'center', wrap: true },
+              ],
+              flex: 1,
+            },
+          ],
+          spacing: 'md',
+        },
+        createSpacer('md'),
+        // Explanation
+        {
+          type: 'box',
+          layout: 'vertical',
+          contents: [
+            { type: 'text', text: '💡 คำนวณจากรายรับ - รายจ่ายที่เกิดขึ้นแล้ว', size: 'xxs', color: '#9CA3AF', align: 'center', wrap: true },
+            { type: 'text', text: '(ไม่รวมค่าใช้จ่ายประจำที่ยังมาไม่ถึง)', size: 'xxs', color: '#9CA3AF', align: 'center', wrap: true },
+          ],
+        },
+      ],
+      paddingAll: 'lg',
+      spacing: 'none' as any,
+    },
+    theme,
+  });
+}
+
 // ===== Public: Monthly Summary (carousel) =====
 
 export function monthlySummaryMessage(
@@ -323,16 +427,18 @@ export function monthlySummaryMessage(
   recurringItems: RecurringWithStatus[],
   theme: ThemeColors,
   year?: number,
-  month?: number
+  month?: number,
+  accumulatedBalance?: number
 ): any {
   const displayMonth = year && month ? getThaiMonthYear(year, month) : getCurrentThaiMonth();
 
   const bubble1 = summaryBubble(summary, categoryBreakdown, theme, displayMonth);
   const bubble2 = recurringTimelineBubble(recurringItems, theme, displayMonth);
+  const bubble3 = savingsBubble(summary.balance, accumulatedBalance ?? 0, theme, displayMonth);
 
   return createFlexMessage('สรุปรายรับรายจ่าย', {
     type: 'carousel',
-    contents: [bubble1, bubble2],
+    contents: [bubble1, bubble2, bubble3],
   });
 }
 
