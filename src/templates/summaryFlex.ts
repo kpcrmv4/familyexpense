@@ -419,83 +419,104 @@ function savingsBubble(
   });
 }
 
-// ===== Bubble 4: Daily Chart =====
+// ===== Bubble 4: Daily Calendar Heat-map =====
 
 function dailyChartBubble(
   dailyData: { day: number; income: number; expense: number }[],
   totalIncome: number,
   totalExpense: number,
   theme: ThemeColors,
-  displayMonth: string
+  displayMonth: string,
+  year: number,
+  month: number
 ): any {
-  const chartHeight = 80;
-  const minBarH = 2;
+  const dayMap = new Map(dailyData.map((d) => [d.day, d]));
+  const daysInMonth = dailyData.length;
 
-  // Group days into 3-day periods to keep Flex Message within LINE size limits
-  const groupSize = 3;
-  const grouped: { label: string; income: number; expense: number }[] = [];
-  for (let i = 0; i < dailyData.length; i += groupSize) {
-    const chunk = dailyData.slice(i, i + groupSize);
-    const startDay = chunk[0].day;
-    const endDay = chunk[chunk.length - 1].day;
-    grouped.push({
-      label: String(startDay),
-      income: chunk.reduce((s, d) => s + d.income, 0),
-      expense: chunk.reduce((s, d) => s + d.expense, 0),
+  // Monday-based offset (จ=0 ... อา=6)
+  const jsDay = new Date(year, month - 1, 1).getDay(); // 0=Sun
+  const startOffset = jsDay === 0 ? 6 : jsDay - 1;
+
+  // Day name header row
+  const dayNames = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
+  const headerRow: any = {
+    type: 'box',
+    layout: 'horizontal',
+    contents: dayNames.map((name, i) => ({
+      type: 'text',
+      text: name,
+      size: 'xxs',
+      color: i >= 5 ? '#EF4444' : '#6B7280',
+      align: 'center',
+      flex: 1,
+      weight: 'bold',
+    })),
+    spacing: 'xs',
+  };
+
+  // Build week rows
+  const numWeeks = Math.ceil((startOffset + daysInMonth) / 7);
+  const weekRows: any[] = [];
+
+  for (let w = 0; w < numWeeks; w++) {
+    const cells: any[] = [];
+    for (let d = 0; d < 7; d++) {
+      const day = w * 7 + d - startOffset + 1;
+
+      if (day < 1 || day > daysInMonth) {
+        // Empty padding cell
+        cells.push({ type: 'box', layout: 'vertical', contents: [], flex: 1, height: '26px' });
+      } else {
+        const data = dayMap.get(day);
+        const hasData = data != null && (data.income > 0 || data.expense > 0);
+        const net = data ? data.income - data.expense : 0;
+
+        let bgColor = '#FFFFFF';
+        let textColor = '#9CA3AF';
+
+        if (hasData) {
+          if (net > 0) {
+            bgColor = '#D1FAE5';
+            textColor = '#059669';
+          } else if (net < 0) {
+            bgColor = '#FEE2E2';
+            textColor = '#DC2626';
+          } else {
+            bgColor = '#FEF3C7';
+            textColor = '#D97706';
+          }
+        }
+
+        cells.push({
+          type: 'box',
+          layout: 'vertical',
+          contents: [{
+            type: 'text',
+            text: String(day),
+            size: 'xxs',
+            align: 'center',
+            color: textColor,
+            weight: hasData ? 'bold' : 'regular',
+          }],
+          backgroundColor: bgColor,
+          cornerRadius: 'sm',
+          flex: 1,
+          height: '26px',
+          justifyContent: 'center',
+        });
+      }
+    }
+
+    weekRows.push({
+      type: 'box',
+      layout: 'horizontal',
+      contents: cells,
+      spacing: 'xs',
     });
   }
 
-  const maxAmount = Math.max(
-    ...grouped.map((g) => Math.max(g.income, g.expense)),
-    1
-  );
-
-  // Build bar columns - one per group
-  const barColumns: any[] = grouped.map((g) => {
-    const iH = g.income > 0 ? Math.max(Math.round((g.income / maxAmount) * chartHeight), minBarH) : 0;
-    const eH = g.expense > 0 ? Math.max(Math.round((g.expense / maxAmount) * chartHeight), minBarH) : 0;
-
-    const bars: any[] = [
-      {
-        type: 'box', layout: 'vertical', contents: [],
-        backgroundColor: iH > 0 ? '#10B981' : '#F3F4F6',
-        height: `${Math.max(iH, 1)}px`,
-        flex: 1,
-      },
-      {
-        type: 'box', layout: 'vertical', contents: [],
-        backgroundColor: eH > 0 ? '#EF4444' : '#F3F4F6',
-        height: `${Math.max(eH, 1)}px`,
-        flex: 1,
-      },
-    ];
-
-    return {
-      type: 'box',
-      layout: 'vertical',
-      contents: [{
-        type: 'box',
-        layout: 'horizontal',
-        contents: bars,
-        alignItems: 'flex-end',
-      }],
-      flex: 1,
-      justifyContent: 'flex-end',
-    };
-  });
-
-  // X-axis labels
-  const xLabels: any[] = grouped.map((g) => ({
-    type: 'text',
-    text: g.label,
-    size: 'xxs',
-    color: '#9CA3AF',
-    align: 'center',
-    flex: 1,
-  }));
-
   return createBubble({
-    header: createHeader('รายรับ-รายจ่ายรายวัน', displayMonth, '📊'),
+    header: createHeader('ปฏิทินรายรับรายจ่าย', displayMonth, '📅'),
     body: {
       type: 'box',
       layout: 'vertical',
@@ -533,26 +554,15 @@ function dailyChartBubble(
           spacing: 'sm',
         },
         createSpacer('md'),
-        // Chart area
+        // Calendar grid
         {
           type: 'box',
-          layout: 'horizontal',
-          contents: barColumns,
-          height: `${chartHeight}px`,
+          layout: 'vertical',
+          contents: [headerRow, ...weekRows],
+          spacing: 'xs',
           backgroundColor: '#F9FAFB',
           cornerRadius: 'md',
-          paddingTop: 'sm',
-          paddingBottom: 'none',
-          paddingStart: 'xs',
-          paddingEnd: 'xs',
-        },
-        // X-axis labels
-        {
-          type: 'box',
-          layout: 'horizontal',
-          contents: xLabels,
-          paddingStart: 'xs',
-          paddingEnd: 'xs',
+          paddingAll: 'sm',
         },
         createSpacer('sm'),
         // Legend
@@ -560,11 +570,14 @@ function dailyChartBubble(
           type: 'box',
           layout: 'horizontal',
           contents: [
-            { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#10B981', height: '8px', width: '8px', cornerRadius: 'xs' },
-            { type: 'text', text: 'รายรับ', size: 'xxs', color: '#6B7280' },
-            { type: 'box', layout: 'vertical', contents: [], width: '12px', height: '1px' },
-            { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#EF4444', height: '8px', width: '8px', cornerRadius: 'xs' },
-            { type: 'text', text: 'รายจ่าย', size: 'xxs', color: '#6B7280' },
+            { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#D1FAE5', height: '8px', width: '8px', cornerRadius: 'xs' },
+            { type: 'text', text: 'รับ>จ่าย', size: 'xxs', color: '#6B7280' },
+            { type: 'box', layout: 'vertical', contents: [], width: '8px', height: '1px' },
+            { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#FEE2E2', height: '8px', width: '8px', cornerRadius: 'xs' },
+            { type: 'text', text: 'จ่าย>รับ', size: 'xxs', color: '#6B7280' },
+            { type: 'box', layout: 'vertical', contents: [], width: '8px', height: '1px' },
+            { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#FEF3C7', height: '8px', width: '8px', cornerRadius: 'xs' },
+            { type: 'text', text: 'เท่ากัน', size: 'xxs', color: '#6B7280' },
           ],
           justifyContent: 'center',
           spacing: 'sm',
@@ -594,9 +607,9 @@ export function monthlySummaryMessage(
 
   const bubbles: any[] = [];
 
-  // Card 1: Daily chart (if data available)
-  if (dailyData && dailyData.length > 0) {
-    bubbles.push(dailyChartBubble(dailyData, summary.total_income, summary.total_expense, theme, displayMonth));
+  // Card 1: Calendar heat-map (if data available)
+  if (dailyData && dailyData.length > 0 && year && month) {
+    bubbles.push(dailyChartBubble(dailyData, summary.total_income, summary.total_expense, theme, displayMonth, year, month));
   }
 
   // Card 2: Summary
