@@ -5,6 +5,7 @@ import * as transactionService from '../services/transactionService';
 import * as categoryService from '../services/categoryService';
 import * as userService from '../services/userService';
 import * as recurringFlex from '../templates/recurringFlex';
+import { calculateInstallmentInfo } from '../templates/recurringFlex';
 import { errorMessage } from '../templates/summaryFlex';
 import { getGenderTheme } from '../utils/themeColors';
 import { todayDateString, addDaysToToday } from '../utils/formatters';
@@ -370,7 +371,7 @@ export async function handleVariablePaidInput(
 async function recordPaidAndReply(
   replyToken: string,
   user: { id: string },
-  item: { id: string; name: string; amount: number; is_variable: boolean },
+  item: { id: string; name: string; amount: number; is_variable: boolean; end_month?: string | null; created_at?: string },
   paidAmount: number,
   theme: any
 ): Promise<void> {
@@ -401,10 +402,17 @@ async function recordPaidAndReply(
     });
   }
 
+  // Calculate installment info for items with end date
+  let installment: { current: number; total: number } | null = null;
+  if (item.end_month && item.created_at) {
+    const createdYM = item.created_at.substring(0, 7); // "YYYY-MM" from ISO date
+    installment = calculateInstallmentInfo(createdYM, item.end_month);
+  }
+
   const { reminderPaidMessage } = await import('../templates/reminderFlex');
   await lineClient.replyMessage({
     replyToken,
-    messages: [reminderPaidMessage(item.name, paidAmount, theme)],
+    messages: [reminderPaidMessage(item.name, paidAmount, theme, installment)],
   });
 }
 

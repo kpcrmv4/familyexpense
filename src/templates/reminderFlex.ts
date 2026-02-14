@@ -1,6 +1,7 @@
 import { RecurringExpense, ThemeColors } from '../types';
 import { createFlexMessage, createBubble, createHeader, createButton, createSpacer } from './flexMessages';
 import { formatCurrency } from '../utils/formatters';
+import { getMotivationalMessage } from './recurringFlex';
 
 export function reminderMessage(
   items: { id: string; name: string; amount: number; due_day: number; is_variable: boolean }[],
@@ -160,7 +161,19 @@ export function reminderAskAmountMessage(name: string, lastAmount: number, theme
   }));
 }
 
-export function reminderPaidMessage(name: string, amount: number, theme: ThemeColors): any {
+export function reminderPaidMessage(
+  name: string,
+  amount: number,
+  theme: ThemeColors,
+  installment?: { current: number; total: number } | null,
+): any {
+  const installmentText = installment
+    ? `งวดที่ ${installment.current}/${installment.total}`
+    : null;
+  const motivationalText = installment
+    ? getMotivationalMessage(installment.current, installment.total)
+    : null;
+
   return createFlexMessage('ชำระเรียบร้อย', createBubble({
     header: createHeader('ชำระเรียบร้อย! ✅', ''),
     body: {
@@ -183,6 +196,14 @@ export function reminderPaidMessage(name: string, amount: number, theme: ThemeCo
           color: '#10B981',
           align: 'center',
         },
+        ...(installmentText ? [{
+          type: 'text' as const,
+          text: installmentText,
+          size: 'sm' as const,
+          weight: 'bold' as const,
+          color: '#F59E0B',
+          align: 'center' as const,
+        }] : []),
         createSpacer('sm'),
         {
           type: 'text',
@@ -191,6 +212,26 @@ export function reminderPaidMessage(name: string, amount: number, theme: ThemeCo
           color: '#6B7280',
           align: 'center',
         },
+        ...(motivationalText ? [
+          createSpacer('sm'),
+          {
+            type: 'box' as const,
+            layout: 'vertical' as const,
+            contents: [
+              {
+                type: 'text' as const,
+                text: `🤖 ${motivationalText}`,
+                size: 'xs' as const,
+                color: '#4B5563',
+                align: 'center' as const,
+                wrap: true,
+              },
+            ],
+            backgroundColor: '#F0F9FF',
+            cornerRadius: 'md',
+            paddingAll: 'md',
+          },
+        ] : []),
       ],
       paddingAll: 'xl',
       spacing: 'sm',
