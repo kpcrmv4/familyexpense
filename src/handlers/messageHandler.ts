@@ -125,6 +125,11 @@ async function handleStatefulMessage(
       await recurringFlow.handleSnoozeDateInput(replyToken, lineUserId, text);
       break;
 
+    // === Custom Category Name Input ===
+    case 'add_custom_category_name':
+      await transactionFlow.handleCustomCategoryNameInput(replyToken, lineUserId, text, state.data);
+      break;
+
     default:
       // If user types text while in a flow that expects postback, clear state
       await stateService.clearState(lineUserId);

@@ -144,6 +144,7 @@ export interface TransactionColors {
 export type PostbackAction =
   | { action: 'select_type'; type: 'income' | 'expense' }
   | { action: 'select_category'; category_id: string; category_name: string }
+  | { action: 'add_custom_category' }
   | { action: 'confirm_transaction' }
   | { action: 'cancel' }
   | { action: 'register_gender'; gender: 'male' | 'female' | 'other' }

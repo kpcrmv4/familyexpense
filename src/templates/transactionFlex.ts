@@ -118,6 +118,34 @@ export function selectCategoryMessage(
       type: 'box',
       layout: 'vertical',
       contents: [
+        createButton('➕ เพิ่มหมวดหมู่ใหม่', JSON.stringify({ action: 'add_custom_category' }), 'primary', '#6366F1'),
+        createButton('❌ ยกเลิก', JSON.stringify({ action: 'cancel' }), 'secondary'),
+      ],
+      paddingAll: 'lg',
+      spacing: 'sm',
+    },
+    theme,
+  }));
+}
+
+export function askCustomCategoryNameMessage(type: 'income' | 'expense', theme: ThemeColors): any {
+  const typeLabel = type === 'income' ? 'รายรับ' : 'รายจ่าย';
+  return createFlexMessage('เพิ่มหมวดหมู่', createBubble({
+    header: createHeader('เพิ่มหมวดหมู่ใหม่', `ประเภท: ${typeLabel}`, '➕'),
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        { type: 'text', text: 'พิมพ์ชื่อหมวดหมู่ใหม่', size: 'md', weight: 'bold', color: '#1A1A2E', align: 'center' },
+        createSpacer('sm'),
+        { type: 'text', text: 'เช่น "ค่าสัตว์เลี้ยง" "ฟิตเนส"', size: 'xs', color: '#9CA3AF', align: 'center' },
+      ],
+      paddingAll: 'xl',
+    },
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
         createButton('❌ ยกเลิก', JSON.stringify({ action: 'cancel' }), 'secondary'),
       ],
       paddingAll: 'lg',
