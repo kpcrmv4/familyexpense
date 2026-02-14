@@ -430,17 +430,30 @@ function dailyChartBubble(
 ): any {
   const chartHeight = 80;
   const minBarH = 2;
+
+  // Group days into 3-day periods to keep Flex Message within LINE size limits
+  const groupSize = 3;
+  const grouped: { label: string; income: number; expense: number }[] = [];
+  for (let i = 0; i < dailyData.length; i += groupSize) {
+    const chunk = dailyData.slice(i, i + groupSize);
+    const startDay = chunk[0].day;
+    const endDay = chunk[chunk.length - 1].day;
+    grouped.push({
+      label: String(startDay),
+      income: chunk.reduce((s, d) => s + d.income, 0),
+      expense: chunk.reduce((s, d) => s + d.expense, 0),
+    });
+  }
+
   const maxAmount = Math.max(
-    ...dailyData.map((d) => Math.max(d.income, d.expense)),
+    ...grouped.map((g) => Math.max(g.income, g.expense)),
     1
   );
 
-  const daysInMonth = dailyData.length;
-
-  // Build bar columns - one per day
-  const barColumns: any[] = dailyData.map((d) => {
-    const iH = d.income > 0 ? Math.max(Math.round((d.income / maxAmount) * chartHeight), minBarH) : 0;
-    const eH = d.expense > 0 ? Math.max(Math.round((d.expense / maxAmount) * chartHeight), minBarH) : 0;
+  // Build bar columns - one per group
+  const barColumns: any[] = grouped.map((g) => {
+    const iH = g.income > 0 ? Math.max(Math.round((g.income / maxAmount) * chartHeight), minBarH) : 0;
+    const eH = g.expense > 0 ? Math.max(Math.round((g.expense / maxAmount) * chartHeight), minBarH) : 0;
 
     const bars: any[] = [
       {
@@ -472,10 +485,9 @@ function dailyChartBubble(
   });
 
   // X-axis labels
-  const showLabels = new Set([1, 5, 10, 15, 20, 25, daysInMonth]);
-  const xLabels: any[] = dailyData.map((d) => ({
+  const xLabels: any[] = grouped.map((g) => ({
     type: 'text',
-    text: showLabels.has(d.day) ? String(d.day) : '',
+    text: g.label,
     size: 'xxs',
     color: '#9CA3AF',
     align: 'center',
