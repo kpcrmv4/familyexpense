@@ -5,6 +5,92 @@ import { THAI_MONTHS } from '../utils/constants';
 
 // ===== Helper =====
 
+function getItemPaymentStatus(item: RecurringExpense): {
+  isPaid: boolean;
+  isSnoozed: boolean;
+  snoozedToCurrentMonth: boolean;
+  snoozedToNextMonth: boolean;
+  statusText: string;
+} {
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+  const currentYM = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  const firstOfMonth = `${currentYM}-01`;
+  const todayStr = `${currentYM}-${String(now.getDate()).padStart(2, '0')}`;
+
+  const isPaid = !!(item.last_paid_date && item.last_paid_date >= firstOfMonth);
+  const isSnoozed = !!(item.snoozed_until && item.snoozed_until > todayStr);
+
+  let snoozedToCurrentMonth = false;
+  let snoozedToNextMonth = false;
+
+  if (isSnoozed && item.snoozed_until) {
+    const snoozeYM = item.snoozed_until.substring(0, 7);
+    snoozedToCurrentMonth = snoozeYM === currentYM;
+    snoozedToNextMonth = !snoozedToCurrentMonth;
+  }
+
+  let statusText: string;
+  if (isPaid) {
+    statusText = '✅ จ่ายแล้วเดือนนี้';
+  } else if (isSnoozed && snoozedToCurrentMonth) {
+    const snoozeDay = parseInt(item.snoozed_until!.split('-')[2]);
+    statusText = `⏰ เลื่อนจ่ายไปวันที่ ${snoozeDay}`;
+  } else if (isSnoozed && snoozedToNextMonth) {
+    statusText = `⏭️ ยกไปเดือนหน้า (วันที่ ${item.due_day})`;
+  } else if (item.due_day < now.getDate()) {
+    statusText = '🔴 เกินกำหนด';
+  } else if (item.due_day === now.getDate()) {
+    statusText = '🔔 ครบกำหนดวันนี้';
+  } else {
+    statusText = '⏳ รอชำระ';
+  }
+
+  return { isPaid, isSnoozed, snoozedToCurrentMonth, snoozedToNextMonth, statusText };
+}
+
+function buildPaymentFooterButtons(
+  item: RecurringExpense,
+  status: ReturnType<typeof getItemPaymentStatus>
+): any[] {
+  const buttons: any[] = [];
+
+  if (status.isPaid) {
+    buttons.push({
+      type: 'box',
+      layout: 'vertical',
+      contents: [{
+        type: 'text',
+        text: '✅ จ่ายเดือนนี้เรียบร้อยแล้ว',
+        size: 'sm',
+        color: '#10B981',
+        weight: 'bold',
+        align: 'center',
+        wrap: true,
+      }],
+      backgroundColor: '#ECFDF5',
+      cornerRadius: 'md',
+      paddingAll: 'md',
+    });
+  } else {
+    buttons.push(
+      createButton('✅ จ่ายทันที', JSON.stringify({ action: 'reminder_paid', id: item.id }), 'primary', '#10B981')
+    );
+
+    if (status.isSnoozed && status.snoozedToCurrentMonth) {
+      buttons.push(
+        createButton('📅 เลื่อนวันที่ในเดือนนี้', JSON.stringify({ action: 'reminder_snooze_pick_date', id: item.id }), 'secondary')
+      );
+    } else if (!status.isSnoozed) {
+      buttons.push(
+        createButton('📅 เลื่อนจ่าย', JSON.stringify({ action: 'reminder_snooze_pick_date', id: item.id }), 'secondary'),
+        createButton('⏭️ ยกยอดไปเดือนหน้า', JSON.stringify({ action: 'reminder_postpone_next_month', id: item.id }), 'secondary')
+      );
+    }
+  }
+
+  return buttons;
+}
+
 function formatEndMonth(endMonth: string | null): string {
   if (!endMonth) return 'ไม่มี (จ่ายตลอด)';
   const [y, m] = endMonth.split('-');
@@ -736,35 +822,54 @@ export function recurringEditMessage(item: RecurringExpense, theme: ThemeColors)
     return debtEditMessage(item, theme);
   }
 
+  const status = getItemPaymentStatus(item);
+
+  // Calculate installment info
+  let installmentText: string | null = null;
+  if (item.end_month && item.created_at) {
+    const createdYM = item.created_at.substring(0, 7);
+    const { current, total } = calculateInstallmentInfo(createdYM, item.end_month);
+    installmentText = `งวดที่ ${current}/${total}`;
+  }
+
+  const bodyContents: any[] = [
+    createTextRow('ชื่อ', item.name),
+    createSpacer('xs'),
+    createTextRow('จำนวน', Number(item.amount) > 0
+      ? `${item.is_variable ? '~' : ''}฿${formatCurrency(Number(item.amount))}`
+      : 'ยอดไม่คงที่'),
+    createSpacer('xs'),
+    createTextRow('ประเภทยอด', amountTypeLabel(item.is_variable)),
+    createSpacer('xs'),
+    createTextRow('วันครบกำหนด', `วันที่ ${item.due_day}`),
+    createSpacer('xs'),
+    createTextRow('สิ้นสุด', formatEndMonth(item.end_month)),
+    ...(installmentText ? [
+      createSpacer('xs'),
+      createTextRow('งวด', installmentText),
+    ] : []),
+    createSpacer('xs'),
+    createTextRow('สถานะ', status.statusText),
+  ];
+
+  const footerButtons = [
+    ...buildPaymentFooterButtons(item, status),
+    createButton('🗑️ ลบรายการนี้', JSON.stringify({ action: 'recurring_delete', id: item.id }), 'primary', '#EF4444'),
+    createButton('◀️ กลับ', JSON.stringify({ action: 'recurring_menu' }), 'secondary'),
+  ];
+
   return createFlexMessage('จัดการค่าใช้จ่าย', createBubble({
     header: createHeader(item.name, `${item.is_variable ? '~' : ''}฿${formatCurrency(Number(item.amount))} / เดือน`, '⚙️'),
     body: {
       type: 'box',
       layout: 'vertical',
-      contents: [
-        createTextRow('ชื่อ', item.name),
-        createSpacer('xs'),
-        createTextRow('จำนวน', Number(item.amount) > 0
-          ? `${item.is_variable ? '~' : ''}฿${formatCurrency(Number(item.amount))}`
-          : 'ยอดไม่คงที่'),
-        createSpacer('xs'),
-        createTextRow('ประเภทยอด', amountTypeLabel(item.is_variable)),
-        createSpacer('xs'),
-        createTextRow('วันครบกำหนด', `วันที่ ${item.due_day}`),
-        createSpacer('xs'),
-        createTextRow('สิ้นสุด', formatEndMonth(item.end_month)),
-        createSpacer('xs'),
-        createTextRow('สถานะ', item.is_active ? '✅ เปิดใช้งาน' : '❌ ปิดใช้งาน'),
-      ],
+      contents: bodyContents,
       paddingAll: 'xl',
     },
     footer: {
       type: 'box',
       layout: 'vertical',
-      contents: [
-        createButton('🗑️ ลบรายการนี้', JSON.stringify({ action: 'recurring_delete', id: item.id }), 'primary', '#EF4444'),
-        createButton('◀️ กลับ', JSON.stringify({ action: 'recurring_menu' }), 'secondary'),
-      ],
+      contents: footerButtons,
       paddingAll: 'lg',
       spacing: 'sm',
     },
@@ -949,6 +1054,16 @@ export function debtEditMessage(item: RecurringExpense, theme: ThemeColors): any
   const totalPaid = Number(item.total_paid || 0);
   const remaining = Math.max(totalDebt - totalPaid, 0);
 
+  const status = getItemPaymentStatus(item);
+
+  const footerButtons = [
+    ...buildPaymentFooterButtons(item, status),
+    createButton('✏️ แก้ไขยอดหนี้รวม', JSON.stringify({ action: 'debt_update_balance', id: item.id }), 'primary', '#F59E0B'),
+    createButton('➕ รูดบัตรเพิ่ม (เพิ่มยอดหนี้)', JSON.stringify({ action: 'debt_add_charge', id: item.id }), 'primary', '#EF4444'),
+    createButton('🗑️ ลบรายการนี้', JSON.stringify({ action: 'recurring_delete', id: item.id }), 'secondary'),
+    createButton('◀️ กลับ', JSON.stringify({ action: 'recurring_menu' }), 'secondary'),
+  ];
+
   return createFlexMessage('จัดการหนี้สิน', createBubble({
     header: createHeader(item.name, `คงเหลือ ฿${formatCurrency(remaining)}`, '💳'),
     body: {
@@ -967,19 +1082,14 @@ export function debtEditMessage(item: RecurringExpense, theme: ThemeColors): any
         createSpacer('xs'),
         createTextRow('วันครบกำหนด', `วันที่ ${item.due_day}`),
         createSpacer('xs'),
-        createTextRow('สถานะ', item.is_active ? '✅ เปิดใช้งาน' : '❌ ปิดใช้งาน'),
+        createTextRow('สถานะ', status.statusText),
       ],
       paddingAll: 'xl',
     },
     footer: {
       type: 'box',
       layout: 'vertical',
-      contents: [
-        createButton('✏️ แก้ไขยอดหนี้รวม', JSON.stringify({ action: 'debt_update_balance', id: item.id }), 'primary', '#F59E0B'),
-        createButton('➕ รูดบัตรเพิ่ม (เพิ่มยอดหนี้)', JSON.stringify({ action: 'debt_add_charge', id: item.id }), 'primary', '#EF4444'),
-        createButton('🗑️ ลบรายการนี้', JSON.stringify({ action: 'recurring_delete', id: item.id }), 'secondary'),
-        createButton('◀️ กลับ', JSON.stringify({ action: 'recurring_menu' }), 'secondary'),
-      ],
+      contents: footerButtons,
       paddingAll: 'lg',
       spacing: 'sm',
     },
