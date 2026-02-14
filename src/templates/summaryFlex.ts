@@ -419,6 +419,153 @@ function savingsBubble(
   });
 }
 
+// ===== Bubble 4: Daily Chart =====
+
+function dailyChartBubble(
+  dailyData: { day: number; income: number; expense: number }[],
+  totalIncome: number,
+  totalExpense: number,
+  theme: ThemeColors,
+  displayMonth: string
+): any {
+  const chartHeight = 80;
+  const minBarH = 2;
+  const maxAmount = Math.max(
+    ...dailyData.map((d) => Math.max(d.income, d.expense)),
+    1
+  );
+
+  const daysInMonth = dailyData.length;
+
+  // Build bar columns - one per day
+  const barColumns: any[] = dailyData.map((d) => {
+    const iH = d.income > 0 ? Math.max(Math.round((d.income / maxAmount) * chartHeight), minBarH) : 0;
+    const eH = d.expense > 0 ? Math.max(Math.round((d.expense / maxAmount) * chartHeight), minBarH) : 0;
+
+    const bars: any[] = [
+      {
+        type: 'box', layout: 'vertical', contents: [],
+        backgroundColor: iH > 0 ? '#10B981' : '#F3F4F6',
+        height: `${Math.max(iH, 1)}px`,
+        flex: 1,
+      },
+      {
+        type: 'box', layout: 'vertical', contents: [],
+        backgroundColor: eH > 0 ? '#EF4444' : '#F3F4F6',
+        height: `${Math.max(eH, 1)}px`,
+        flex: 1,
+      },
+    ];
+
+    return {
+      type: 'box',
+      layout: 'vertical',
+      contents: [{
+        type: 'box',
+        layout: 'horizontal',
+        contents: bars,
+        alignItems: 'flex-end',
+      }],
+      flex: 1,
+      justifyContent: 'flex-end',
+    };
+  });
+
+  // X-axis labels
+  const showLabels = new Set([1, 5, 10, 15, 20, 25, daysInMonth]);
+  const xLabels: any[] = dailyData.map((d) => ({
+    type: 'text',
+    text: showLabels.has(d.day) ? String(d.day) : '',
+    size: 'xxs',
+    color: '#9CA3AF',
+    align: 'center',
+    flex: 1,
+  }));
+
+  return createBubble({
+    header: createHeader('รายรับ-รายจ่ายรายวัน', displayMonth, '📊'),
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        // Summary row
+        {
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            {
+              type: 'box',
+              layout: 'vertical',
+              contents: [
+                { type: 'text', text: '📥 รายรับ', size: 'xxs', color: '#6B7280', align: 'center' },
+                { type: 'text', text: `฿${formatCurrency(totalIncome)}`, size: 'sm', weight: 'bold', color: '#10B981', align: 'center' },
+              ],
+              backgroundColor: '#D1FAE5',
+              cornerRadius: 'md',
+              paddingAll: 'sm',
+              flex: 1,
+            },
+            {
+              type: 'box',
+              layout: 'vertical',
+              contents: [
+                { type: 'text', text: '📤 รายจ่าย', size: 'xxs', color: '#6B7280', align: 'center' },
+                { type: 'text', text: `฿${formatCurrency(totalExpense)}`, size: 'sm', weight: 'bold', color: '#EF4444', align: 'center' },
+              ],
+              backgroundColor: '#FEE2E2',
+              cornerRadius: 'md',
+              paddingAll: 'sm',
+              flex: 1,
+            },
+          ],
+          spacing: 'sm',
+        },
+        createSpacer('md'),
+        // Chart area
+        {
+          type: 'box',
+          layout: 'horizontal',
+          contents: barColumns,
+          height: `${chartHeight}px`,
+          backgroundColor: '#F9FAFB',
+          cornerRadius: 'md',
+          paddingTop: 'sm',
+          paddingBottom: 'none',
+          paddingStart: 'xs',
+          paddingEnd: 'xs',
+        },
+        // X-axis labels
+        {
+          type: 'box',
+          layout: 'horizontal',
+          contents: xLabels,
+          paddingStart: 'xs',
+          paddingEnd: 'xs',
+        },
+        createSpacer('sm'),
+        // Legend
+        {
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#10B981', height: '8px', width: '8px', cornerRadius: 'xs' },
+            { type: 'text', text: 'รายรับ', size: 'xxs', color: '#6B7280' },
+            { type: 'box', layout: 'vertical', contents: [], width: '12px', height: '1px' },
+            { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#EF4444', height: '8px', width: '8px', cornerRadius: 'xs' },
+            { type: 'text', text: 'รายจ่าย', size: 'xxs', color: '#6B7280' },
+          ],
+          justifyContent: 'center',
+          spacing: 'sm',
+          alignItems: 'center',
+        },
+      ],
+      paddingAll: 'lg',
+      spacing: 'none' as any,
+    },
+    theme,
+  });
+}
+
 // ===== Public: Monthly Summary (carousel) =====
 
 export function monthlySummaryMessage(
@@ -428,17 +575,28 @@ export function monthlySummaryMessage(
   theme: ThemeColors,
   year?: number,
   month?: number,
-  accumulatedBalance?: number
+  accumulatedBalance?: number,
+  dailyData?: { day: number; income: number; expense: number }[]
 ): any {
   const displayMonth = year && month ? getThaiMonthYear(year, month) : getCurrentThaiMonth();
 
-  const bubble1 = summaryBubble(summary, categoryBreakdown, theme, displayMonth);
-  const bubble2 = recurringTimelineBubble(recurringItems, theme, displayMonth);
-  const bubble3 = savingsBubble(summary.balance, accumulatedBalance ?? 0, theme, displayMonth);
+  const bubbles: any[] = [];
+
+  // Card 1: Daily chart (if data available)
+  if (dailyData && dailyData.length > 0) {
+    bubbles.push(dailyChartBubble(dailyData, summary.total_income, summary.total_expense, theme, displayMonth));
+  }
+
+  // Card 2: Summary
+  bubbles.push(summaryBubble(summary, categoryBreakdown, theme, displayMonth));
+  // Card 3: Recurring timeline
+  bubbles.push(recurringTimelineBubble(recurringItems, theme, displayMonth));
+  // Card 4: Savings
+  bubbles.push(savingsBubble(summary.balance, accumulatedBalance ?? 0, theme, displayMonth));
 
   return createFlexMessage('สรุปรายรับรายจ่าย', {
     type: 'carousel',
-    contents: [bubble1, bubble2, bubble3],
+    contents: bubbles,
   });
 }
 
