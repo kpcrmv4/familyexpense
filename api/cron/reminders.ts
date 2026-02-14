@@ -23,7 +23,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const userItemsMap = new Map<string, {
       lineUserId: string;
       gender: string;
-      items: { id: string; name: string; amount: number; due_day: number; is_variable: boolean }[];
+      items: { id: string; name: string; amount: number; due_day: number; is_variable: boolean; total_debt?: number | null }[];
     }>();
 
     for (const item of dueItems) {
@@ -41,6 +41,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         amount: Number(item.amount),
         due_day: item.due_day,
         is_variable: item.is_variable,
+        total_debt: item.total_debt,
       });
     }
 

@@ -99,6 +99,10 @@ async function handleStatefulMessage(
       await recurringFlow.handleTotalDebtInput(replyToken, lineUserId, text);
       break;
 
+    case 'recurring_add_min_payment':
+      await recurringFlow.handleMinPaymentInput(replyToken, lineUserId, text);
+      break;
+
     case 'debt_pay':
       await recurringFlow.handleDebtPayInput(replyToken, lineUserId, text);
       break;

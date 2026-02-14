@@ -4,7 +4,7 @@ import { formatCurrency } from '../utils/formatters';
 import { getMotivationalMessage } from './recurringFlex';
 
 export function reminderMessage(
-  items: { id: string; name: string; amount: number; due_day: number; is_variable: boolean }[],
+  items: { id: string; name: string; amount: number; due_day: number; is_variable: boolean; total_debt?: number | null }[],
   theme: ThemeColors
 ): any {
   if (items.length === 1) {
@@ -20,16 +20,28 @@ export function reminderMessage(
 }
 
 function singleReminderBubble(
-  item: { id: string; name: string; amount: number; due_day: number; is_variable: boolean },
+  item: { id: string; name: string; amount: number; due_day: number; is_variable: boolean; total_debt?: number | null },
   theme: ThemeColors
 ) {
-  const amountText = item.is_variable
-    ? (item.amount > 0 ? `~฿${formatCurrency(item.amount)}` : 'ยอดไม่คงที่')
-    : `฿${formatCurrency(item.amount)}`;
+  const isDebt = item.total_debt != null && Number(item.total_debt) > 0;
 
-  const subtitle = item.is_variable
-    ? 'วันนี้ครบกำหนด · ยอดไม่คงที่'
-    : 'วันนี้ครบกำหนดชำระ';
+  let amountText: string;
+  let subtitle: string;
+  let refText: string | null = null;
+
+  if (isDebt) {
+    amountText = item.amount > 0 ? `฿${formatCurrency(item.amount)}` : 'ระบุยอดชำระ';
+    subtitle = 'วันนี้ครบกำหนด · 💳 หนี้สิน';
+    if (item.amount > 0) refText = '(ขั้นต่ำ/เดือน)';
+  } else if (item.is_variable) {
+    amountText = item.amount > 0 ? `~฿${formatCurrency(item.amount)}` : 'ยอดไม่คงที่';
+    subtitle = 'วันนี้ครบกำหนด · ยอดไม่คงที่';
+    if (item.amount > 0) refText = '(ยอดเดือนก่อน)';
+    else refText = '(กดชำระเพื่อระบุยอด)';
+  } else {
+    amountText = `฿${formatCurrency(item.amount)}`;
+    subtitle = 'วันนี้ครบกำหนดชำระ';
+  }
 
   return createBubble({
     header: createHeader('แจ้งเตือนชำระเงิน 🔔', subtitle),
@@ -39,7 +51,7 @@ function singleReminderBubble(
       contents: [
         {
           type: 'text',
-          text: `📅 ${item.name}`,
+          text: `${isDebt ? '💳' : '📅'} ${item.name}`,
           size: 'lg',
           weight: 'bold',
           color: '#1A1A2E',
@@ -53,9 +65,9 @@ function singleReminderBubble(
           color: '#EF4444',
           align: 'center',
         },
-        ...(item.is_variable ? [{
+        ...(refText ? [{
           type: 'text' as const,
-          text: item.amount > 0 ? '(ยอดเดือนก่อน)' : '(กดชำระเพื่อระบุยอด)',
+          text: refText,
           size: 'xxs' as const,
           color: '#9CA3AF',
           align: 'center' as const,
@@ -93,7 +105,7 @@ function singleReminderBubble(
 }
 
 function singleReminderMessage(
-  item: { id: string; name: string; amount: number; due_day: number; is_variable: boolean },
+  item: { id: string; name: string; amount: number; due_day: number; is_variable: boolean; total_debt?: number | null },
   theme: ThemeColors
 ): any {
   return createFlexMessage('แจ้งเตือนชำระเงิน', singleReminderBubble(item, theme));

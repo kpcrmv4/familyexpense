@@ -568,16 +568,46 @@ export async function handleTotalDebtInput(replyToken: string, lineUserId: strin
     return;
   }
 
-  // Go to ask due day
-  await stateService.setState(lineUserId, 'recurring_add_due_day', {
+  // Go to ask minimum monthly payment
+  await stateService.setState(lineUserId, 'recurring_add_min_payment', {
     ...state.data,
     total_debt: totalDebt,
-    amount: 0, // no fixed monthly amount for debt
   });
 
   await lineClient.replyMessage({
     replyToken,
-    messages: [recurringFlex.recurringAskDueDayMessage(state.data.name, 0, true, theme)],
+    messages: [recurringFlex.debtAskMinPaymentMessage(state.data.name, totalDebt, theme)],
+  });
+}
+
+// ===== Debt: Minimum Payment Input =====
+
+export async function handleMinPaymentInput(replyToken: string, lineUserId: string, text: string): Promise<void> {
+  const state = await stateService.getState(lineUserId);
+  if (!state) return;
+
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+  const theme = getGenderTheme(user.gender);
+
+  const minPayment = parseFloat(text.replace(/,/g, ''));
+  if (isNaN(minPayment) || minPayment <= 0) {
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: 'กรุณาพิมพ์ยอดขั้นต่ำที่ถูกต้อง เช่น 3000' }],
+    });
+    return;
+  }
+
+  // Go to ask due day
+  await stateService.setState(lineUserId, 'recurring_add_due_day', {
+    ...state.data,
+    amount: minPayment,
+  });
+
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [recurringFlex.recurringAskDueDayMessage(state.data.name, minPayment, true, theme)],
   });
 }
 
