@@ -23,7 +23,7 @@ function createMenuButton(icon: string, label: string, action: string, color: st
     style: 'secondary',
     height: 'sm',
     margin: 'sm',
-    color: '#F3F4F6',
+    color: '#F0F2F5',
   };
 }
 

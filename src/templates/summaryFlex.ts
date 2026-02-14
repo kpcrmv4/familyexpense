@@ -10,7 +10,7 @@ function categoryRow(icon: string, name: string, total: number, color: string): 
     type: 'box',
     layout: 'horizontal',
     contents: [
-      { type: 'text', text: `${icon} ${name}`, size: 'xs', color: '#6B7280', flex: 1 },
+      { type: 'text', text: `${icon} ${name}`, size: 'xs', color: '#718096', flex: 1 },
       { type: 'text', text: `฿${formatCurrency(total)}`, size: 'xs', color, align: 'end', weight: 'bold' },
     ],
   };
@@ -40,8 +40,8 @@ function summaryBubble(
         type: 'box',
         layout: 'horizontal',
         contents: [
-          { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#10B981', height: '8px', flex: incomePercent || 1 },
-          { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#EF4444', height: '8px', flex: expensePercent || 1 },
+          { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#68D391', height: '8px', flex: incomePercent || 1 },
+          { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#FC8181', height: '8px', flex: expensePercent || 1 },
         ],
         cornerRadius: 'md',
       },
@@ -49,8 +49,8 @@ function summaryBubble(
         type: 'box',
         layout: 'horizontal',
         contents: [
-          { type: 'text', text: `รายรับ ${incomePercent}%`, size: 'xxs', color: '#10B981', flex: 1 },
-          { type: 'text', text: `รายจ่าย ${expensePercent}%`, size: 'xxs', color: '#EF4444', align: 'end', flex: 1 },
+          { type: 'text', text: `รายรับ ${incomePercent}%`, size: 'xxs', color: '#68D391', flex: 1 },
+          { type: 'text', text: `รายจ่าย ${expensePercent}%`, size: 'xxs', color: '#FC8181', align: 'end', flex: 1 },
         ],
       },
     ],
@@ -62,18 +62,18 @@ function summaryBubble(
   const expenseCatItems: any[] = expenseCategories.length > 0
     ? expenseCategories.flatMap((cat, i) => [
         ...(i > 0 ? [createSpacer('xs')] : []),
-        categoryRow(cat.icon, cat.category_name, cat.total, '#EF4444'),
+        categoryRow(cat.icon, cat.category_name, cat.total, '#FC8181'),
       ])
-    : [{ type: 'text', text: 'ยังไม่มีรายการ', size: 'xs', color: '#9CA3AF', align: 'center' }];
+    : [{ type: 'text', text: 'ยังไม่มีรายการ', size: 'xs', color: '#A0AEC0', align: 'center' }];
 
   // Income categories (top 3)
   const incomeCategories = categoryBreakdown.filter((c) => c.type === 'income').slice(0, 3);
   const incomeCatItems: any[] = incomeCategories.length > 0
     ? incomeCategories.flatMap((cat, i) => [
         ...(i > 0 ? [createSpacer('xs')] : []),
-        categoryRow(cat.icon, cat.category_name, cat.total, '#10B981'),
+        categoryRow(cat.icon, cat.category_name, cat.total, '#68D391'),
       ])
-    : [{ type: 'text', text: 'ยังไม่มีรายการ', size: 'xs', color: '#9CA3AF', align: 'center' }];
+    : [{ type: 'text', text: 'ยังไม่มีรายการ', size: 'xs', color: '#A0AEC0', align: 'center' }];
 
   return createBubble({
     header: createHeader('สรุปรายรับรายจ่าย', displayMonth, '📊'),
@@ -90,7 +90,7 @@ function summaryBubble(
               type: 'box',
               layout: 'vertical',
               contents: [
-                { type: 'text', text: '📥 รายรับ', size: 'xxs', color: '#6B7280', align: 'center' },
+                { type: 'text', text: '📥 รายรับ', size: 'xxs', color: '#718096', align: 'center' },
                 { type: 'text', text: `฿${formatCurrency(summary.total_income)}`, size: 'sm', weight: 'bold', color: incomeColors.highlight, align: 'center' },
               ],
               backgroundColor: incomeColors.bg,
@@ -102,7 +102,7 @@ function summaryBubble(
               type: 'box',
               layout: 'vertical',
               contents: [
-                { type: 'text', text: '📤 รายจ่าย', size: 'xxs', color: '#6B7280', align: 'center' },
+                { type: 'text', text: '📤 รายจ่าย', size: 'xxs', color: '#718096', align: 'center' },
                 { type: 'text', text: `฿${formatCurrency(summary.total_expense)}`, size: 'sm', weight: 'bold', color: expenseColors.highlight, align: 'center' },
               ],
               backgroundColor: expenseColors.bg,
@@ -119,17 +119,17 @@ function summaryBubble(
           type: 'box',
           layout: 'vertical',
           contents: [
-            { type: 'text', text: '💰 คงเหลือ', size: 'xxs', color: '#6B7280', align: 'center' },
+            { type: 'text', text: '💰 คงเหลือ', size: 'xxs', color: '#718096', align: 'center' },
             {
               type: 'text',
               text: `฿${formatCurrency(summary.balance)}`,
               size: 'xl',
               weight: 'bold',
-              color: summary.balance >= 0 ? '#10B981' : '#EF4444',
+              color: summary.balance >= 0 ? '#68D391' : '#FC8181',
               align: 'center',
             },
           ],
-          backgroundColor: summary.balance >= 0 ? '#D1FAE5' : '#FEE2E2',
+          backgroundColor: summary.balance >= 0 ? '#E6FFEC' : '#FFF0F0',
           cornerRadius: 'md',
           paddingAll: 'md',
         },
@@ -140,14 +140,14 @@ function summaryBubble(
         createSpacer('md'),
         createSeparator(),
         createSpacer('md'),
-        { type: 'text', text: '📤 รายจ่ายตามหมวดหมู่ (Top 5)', size: 'xs', weight: 'bold', color: '#1A1A2E' },
+        { type: 'text', text: '📤 รายจ่ายตามหมวดหมู่ (Top 5)', size: 'xs', weight: 'bold', color: '#2D3748' },
         createSpacer('sm'),
         ...expenseCatItems,
         // Income categories
         createSpacer('md'),
         createSeparator(),
         createSpacer('md'),
-        { type: 'text', text: '📥 รายรับตามหมวดหมู่ (Top 3)', size: 'xs', weight: 'bold', color: '#1A1A2E' },
+        { type: 'text', text: '📥 รายรับตามหมวดหมู่ (Top 3)', size: 'xs', weight: 'bold', color: '#2D3748' },
         createSpacer('sm'),
         ...incomeCatItems,
       ],
@@ -180,7 +180,7 @@ function recurringTimelineBubble(
     .reduce((sum, i) => sum + Number(i.amount), 0);
 
   const statusIcon = (s: string) => s === 'paid' ? '✅' : s === 'overdue' ? '🔴' : '⏳';
-  const statusColor = (s: string) => s === 'paid' ? '#10B981' : s === 'overdue' ? '#EF4444' : '#F59E0B';
+  const statusColor = (s: string) => s === 'paid' ? '#68D391' : s === 'overdue' ? '#FC8181' : '#F6C065';
 
   const itemRows: any[] = items.length > 0
     ? items.flatMap((item, i) => {
@@ -203,7 +203,7 @@ function recurringTimelineBubble(
                   layout: 'horizontal',
                   contents: [
                     { type: 'text', text: statusIcon(item.status), size: 'sm', flex: 0 },
-                    { type: 'text', text: `💳 ${item.name}`, size: 'xs', weight: 'bold', color: '#1A1A2E', flex: 1 },
+                    { type: 'text', text: `💳 ${item.name}`, size: 'xs', weight: 'bold', color: '#2D3748', flex: 1 },
                     { type: 'text', text: `฿${formatCurrency(remaining)}`, size: 'xs', weight: 'bold', color: statusColor(item.status), align: 'end' },
                   ],
                   spacing: 'sm',
@@ -212,15 +212,15 @@ function recurringTimelineBubble(
                   type: 'box',
                   layout: 'horizontal',
                   contents: [
-                    ...(paidPercent > 0 ? [{ type: 'box' as const, layout: 'vertical' as const, contents: [] as any[], backgroundColor: '#10B981', height: '4px', flex: paidPercent || 1 }] : []),
-                    ...(100 - paidPercent > 0 ? [{ type: 'box' as const, layout: 'vertical' as const, contents: [] as any[], backgroundColor: '#E5E7EB', height: '4px', flex: (100 - paidPercent) || 1 }] : []),
+                    ...(paidPercent > 0 ? [{ type: 'box' as const, layout: 'vertical' as const, contents: [] as any[], backgroundColor: '#68D391', height: '4px', flex: paidPercent || 1 }] : []),
+                    ...(100 - paidPercent > 0 ? [{ type: 'box' as const, layout: 'vertical' as const, contents: [] as any[], backgroundColor: '#E8ECF0', height: '4px', flex: (100 - paidPercent) || 1 }] : []),
                   ],
                   cornerRadius: 'md',
                   margin: 'xs',
                 },
-                { type: 'text', text: `วันที่ ${item.due_day} · จ่ายแล้ว ${paidPercent}%`, size: 'xxs', color: '#9CA3AF', margin: 'xs' },
+                { type: 'text', text: `วันที่ ${item.due_day} · จ่ายแล้ว ${paidPercent}%`, size: 'xxs', color: '#A0AEC0', margin: 'xs' },
               ],
-              backgroundColor: item.status === 'overdue' ? '#FEF2F2' : '#F9FAFB',
+              backgroundColor: item.status === 'overdue' ? '#FFF5F5' : '#F7F8FA',
               cornerRadius: 'md',
               paddingAll: 'sm',
             },
@@ -238,8 +238,8 @@ function recurringTimelineBubble(
                 type: 'box',
                 layout: 'vertical',
                 contents: [
-                  { type: 'text', text: item.name, size: 'xs', weight: 'bold', color: '#1A1A2E' },
-                  { type: 'text', text: `วันที่ ${item.due_day}`, size: 'xxs', color: '#9CA3AF' },
+                  { type: 'text', text: item.name, size: 'xs', weight: 'bold', color: '#2D3748' },
+                  { type: 'text', text: `วันที่ ${item.due_day}`, size: 'xxs', color: '#A0AEC0' },
                 ],
                 flex: 1,
               },
@@ -256,23 +256,23 @@ function recurringTimelineBubble(
               },
             ],
             spacing: 'sm',
-            backgroundColor: item.status === 'overdue' ? '#FEF2F2' : '#F9FAFB',
+            backgroundColor: item.status === 'overdue' ? '#FFF5F5' : '#F7F8FA',
             cornerRadius: 'md',
             paddingAll: 'sm',
           },
         ];
       })
-    : [{ type: 'text', text: 'ยังไม่มีค่าใช้จ่ายประจำเดือน', size: 'sm', color: '#9CA3AF', align: 'center' }];
+    : [{ type: 'text', text: 'ยังไม่มีค่าใช้จ่ายประจำเดือน', size: 'sm', color: '#A0AEC0', align: 'center' }];
 
   // Summary row
   const summaryRow: any = {
     type: 'box',
     layout: 'horizontal',
     contents: [
-      { type: 'text', text: `จ่ายแล้ว ${paidCount}/${totalCount}`, size: 'xs', color: '#6B7280', flex: 1 },
-      { type: 'text', text: `คงเหลือ ฿${formatCurrency(remainingAmount)}`, size: 'xs', color: '#EF4444', align: 'end', weight: 'bold' },
+      { type: 'text', text: `จ่ายแล้ว ${paidCount}/${totalCount}`, size: 'xs', color: '#718096', flex: 1 },
+      { type: 'text', text: `คงเหลือ ฿${formatCurrency(remainingAmount)}`, size: 'xs', color: '#FC8181', align: 'end', weight: 'bold' },
     ],
-    backgroundColor: '#F3F4F6',
+    backgroundColor: '#F0F2F5',
     cornerRadius: 'md',
     paddingAll: 'sm',
   };
@@ -282,7 +282,7 @@ function recurringTimelineBubble(
   const footerButtons: any[] = [];
   if (hasPayable) {
     footerButtons.push(
-      createButton('✅ ชำระ', JSON.stringify({ action: 'recurring_menu' }), 'primary', '#10B981')
+      createButton('✅ ชำระ', JSON.stringify({ action: 'recurring_menu' }), 'primary', '#68D391')
     );
   }
   footerButtons.push(
@@ -325,8 +325,8 @@ function savingsBubble(
 ): any {
   const totalSavings = thisMonthBalance + accumulatedBalance;
 
-  const balanceColor = (v: number) => v >= 0 ? '#10B981' : '#EF4444';
-  const balanceBg = (v: number) => v >= 0 ? '#D1FAE5' : '#FEE2E2';
+  const balanceColor = (v: number) => v >= 0 ? '#68D391' : '#FC8181';
+  const balanceBg = (v: number) => v >= 0 ? '#E6FFEC' : '#FFF0F0';
   const sign = (v: number) => v >= 0 ? '+' : '';
 
   return createBubble({
@@ -342,7 +342,7 @@ function savingsBubble(
           contents: [
             { type: 'text', text: '🏦', size: '3xl', align: 'center' },
             createSpacer('sm'),
-            { type: 'text', text: 'ยอดสะสมรวม', size: 'xs', color: '#6B7280', align: 'center' },
+            { type: 'text', text: 'ยอดสะสมรวม', size: 'xs', color: '#718096', align: 'center' },
             {
               type: 'text',
               text: `฿${formatCurrency(totalSavings)}`,
@@ -368,7 +368,7 @@ function savingsBubble(
               type: 'box',
               layout: 'vertical',
               contents: [
-                { type: 'text', text: '📅 เดือนนี้', size: 'xxs', color: '#6B7280', align: 'center' },
+                { type: 'text', text: '📅 เดือนนี้', size: 'xxs', color: '#718096', align: 'center' },
                 {
                   type: 'text',
                   text: `${sign(thisMonthBalance)}฿${formatCurrency(Math.abs(thisMonthBalance))}`,
@@ -377,7 +377,7 @@ function savingsBubble(
                   color: balanceColor(thisMonthBalance),
                   align: 'center',
                 },
-                { type: 'text', text: 'หลังหักรายจ่ายแล้ว', size: 'xxs', color: '#9CA3AF', align: 'center', wrap: true },
+                { type: 'text', text: 'หลังหักรายจ่ายแล้ว', size: 'xxs', color: '#A0AEC0', align: 'center', wrap: true },
               ],
               flex: 1,
             },
@@ -385,7 +385,7 @@ function savingsBubble(
               type: 'box',
               layout: 'vertical',
               contents: [
-                { type: 'text', text: '📦 ยกมา', size: 'xxs', color: '#6B7280', align: 'center' },
+                { type: 'text', text: '📦 ยกมา', size: 'xxs', color: '#718096', align: 'center' },
                 {
                   type: 'text',
                   text: `฿${formatCurrency(accumulatedBalance)}`,
@@ -394,7 +394,7 @@ function savingsBubble(
                   color: balanceColor(accumulatedBalance),
                   align: 'center',
                 },
-                { type: 'text', text: 'สะสมเดือนก่อนๆ', size: 'xxs', color: '#9CA3AF', align: 'center', wrap: true },
+                { type: 'text', text: 'สะสมเดือนก่อนๆ', size: 'xxs', color: '#A0AEC0', align: 'center', wrap: true },
               ],
               flex: 1,
             },
@@ -407,8 +407,8 @@ function savingsBubble(
           type: 'box',
           layout: 'vertical',
           contents: [
-            { type: 'text', text: '💡 คำนวณจากรายรับ - รายจ่ายที่เกิดขึ้นแล้ว', size: 'xxs', color: '#9CA3AF', align: 'center', wrap: true },
-            { type: 'text', text: '(ไม่รวมค่าใช้จ่ายประจำที่ยังมาไม่ถึง)', size: 'xxs', color: '#9CA3AF', align: 'center', wrap: true },
+            { type: 'text', text: '💡 คำนวณจากรายรับ - รายจ่ายที่เกิดขึ้นแล้ว', size: 'xxs', color: '#A0AEC0', align: 'center', wrap: true },
+            { type: 'text', text: '(ไม่รวมค่าใช้จ่ายประจำที่ยังมาไม่ถึง)', size: 'xxs', color: '#A0AEC0', align: 'center', wrap: true },
           ],
         },
       ],
@@ -436,7 +436,7 @@ function dailySummaryBubble(
         const name = tx.description || tx.categories?.name || 'ไม่ระบุ';
         const isIncome = tx.type === 'income';
         const amountText = `${isIncome ? '+' : '-'}฿${formatCurrency(Number(tx.amount))}`;
-        const amountColor = isIncome ? '#10B981' : '#EF4444';
+        const amountColor = isIncome ? '#68D391' : '#FC8181';
 
         return [
           ...(i > 0 ? [createSpacer('xs')] : []),
@@ -449,8 +449,8 @@ function dailySummaryBubble(
                 type: 'box',
                 layout: 'vertical',
                 contents: [
-                  { type: 'text', text: name, size: 'xs', color: '#1A1A2E', weight: 'bold' },
-                  { type: 'text', text: formatThaiDate(tx.transaction_date), size: 'xxs', color: '#9CA3AF' },
+                  { type: 'text', text: name, size: 'xs', color: '#2D3748', weight: 'bold' },
+                  { type: 'text', text: formatThaiDate(tx.transaction_date), size: 'xxs', color: '#A0AEC0' },
                 ],
                 flex: 1,
               },
@@ -465,13 +465,13 @@ function dailySummaryBubble(
               },
             ],
             spacing: 'sm',
-            backgroundColor: '#F9FAFB',
+            backgroundColor: '#F7F8FA',
             cornerRadius: 'md',
             paddingAll: 'sm',
           },
         ];
       })
-    : [{ type: 'text', text: 'ยังไม่มีรายการ', size: 'sm', color: '#9CA3AF', align: 'center' }];
+    : [{ type: 'text', text: 'ยังไม่มีรายการ', size: 'sm', color: '#A0AEC0', align: 'center' }];
 
   return createBubble({
     header: createHeader('สรุปรายรับรายจ่ายประจำวัน', displayDate, '📊'),
@@ -488,10 +488,10 @@ function dailySummaryBubble(
               type: 'box',
               layout: 'vertical',
               contents: [
-                { type: 'text', text: '📥 รายรับวันนี้', size: 'xxs', color: '#6B7280', align: 'center' },
-                { type: 'text', text: `฿${formatCurrency(dailySummary.total_income)}`, size: 'md', weight: 'bold', color: '#10B981', align: 'center' },
+                { type: 'text', text: '📥 รายรับวันนี้', size: 'xxs', color: '#718096', align: 'center' },
+                { type: 'text', text: `฿${formatCurrency(dailySummary.total_income)}`, size: 'md', weight: 'bold', color: '#68D391', align: 'center' },
               ],
-              backgroundColor: '#D1FAE5',
+              backgroundColor: '#E6FFEC',
               cornerRadius: 'md',
               paddingAll: 'md',
               flex: 1,
@@ -500,10 +500,10 @@ function dailySummaryBubble(
               type: 'box',
               layout: 'vertical',
               contents: [
-                { type: 'text', text: '📤 รายจ่ายวันนี้', size: 'xxs', color: '#6B7280', align: 'center' },
-                { type: 'text', text: `฿${formatCurrency(dailySummary.total_expense)}`, size: 'md', weight: 'bold', color: '#EF4444', align: 'center' },
+                { type: 'text', text: '📤 รายจ่ายวันนี้', size: 'xxs', color: '#718096', align: 'center' },
+                { type: 'text', text: `฿${formatCurrency(dailySummary.total_expense)}`, size: 'md', weight: 'bold', color: '#FC8181', align: 'center' },
               ],
-              backgroundColor: '#FEE2E2',
+              backgroundColor: '#FFF0F0',
               cornerRadius: 'md',
               paddingAll: 'md',
               flex: 1,
@@ -515,7 +515,7 @@ function dailySummaryBubble(
         createSpacer('md'),
         createSeparator(),
         createSpacer('md'),
-        { type: 'text', text: '📋 รายการล่าสุด', size: 'xs', weight: 'bold', color: '#1A1A2E' },
+        { type: 'text', text: '📋 รายการล่าสุด', size: 'xs', weight: 'bold', color: '#2D3748' },
         createSpacer('sm'),
         ...transactionRows,
       ],
@@ -592,7 +592,7 @@ export function aiAdviceMessage(
     layout: 'horizontal',
     contents: [
       { type: 'text', text: `${i + 1}.`, size: 'xs', color: theme.accent, flex: 0, weight: 'bold' },
-      { type: 'text', text: tip, size: 'xs', color: '#4B5563', wrap: true, flex: 1 },
+      { type: 'text', text: tip, size: 'xs', color: '#5A6578', wrap: true, flex: 1 },
     ],
     spacing: 'sm',
   }));
@@ -607,14 +607,14 @@ export function aiAdviceMessage(
           type: 'box',
           layout: 'vertical',
           contents: [
-            { type: 'text', text: advice.summary, size: 'sm', color: '#1A1A2E', wrap: true },
+            { type: 'text', text: advice.summary, size: 'sm', color: '#2D3748', wrap: true },
           ],
-          backgroundColor: '#F0F9FF',
+          backgroundColor: '#EBF4FF',
           cornerRadius: 'lg',
           paddingAll: 'lg',
         },
         createSpacer('md'),
-        { type: 'text', text: '💡 คำแนะนำ', size: 'sm', weight: 'bold', color: '#1A1A2E' },
+        { type: 'text', text: '💡 คำแนะนำ', size: 'sm', weight: 'bold', color: '#2D3748' },
         createSpacer('sm'),
         ...tipItems,
       ],
@@ -634,16 +634,16 @@ export function errorMessage(text: string): any {
       type: 'box',
       layout: 'vertical',
       contents: [
-        { type: 'text', text, size: 'sm', color: '#6B7280', align: 'center', wrap: true },
+        { type: 'text', text, size: 'sm', color: '#718096', align: 'center', wrap: true },
       ],
       paddingAll: 'xl',
     },
     theme: {
-      primary: '#EF4444',
-      secondary: '#FEE2E2',
-      accent: '#DC2626',
-      text: '#1A1A2E',
-      subtext: '#6B7280',
+      primary: '#FC8181',
+      secondary: '#FFF0F0',
+      accent: '#F56565',
+      text: '#2D3748',
+      subtext: '#718096',
     },
   }));
 }

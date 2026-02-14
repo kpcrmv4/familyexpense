@@ -86,7 +86,7 @@ export function createButton(
       displayText: label,
     },
     style,
-    color: style === 'primary' ? (color || '#6366F1') : undefined,
+    color: style === 'primary' ? (color || '#9BA4D6') : undefined,
     height: 'sm',
     margin: 'sm',
   };
@@ -101,14 +101,14 @@ export function createTextRow(label: string, value: string, valueColor?: string)
         type: 'text',
         text: label,
         size: 'sm',
-        color: '#6B7280',
+        color: '#718096',
         flex: 0,
       },
       {
         type: 'text',
         text: value,
         size: 'sm',
-        color: valueColor || '#1A1A2E',
+        color: valueColor || '#2D3748',
         align: 'end',
         weight: 'bold',
       },
@@ -117,7 +117,7 @@ export function createTextRow(label: string, value: string, valueColor?: string)
 }
 
 export function createSeparator(): any {
-  return { type: 'separator', margin: 'lg', color: '#E5E7EB' };
+  return { type: 'separator', margin: 'lg', color: '#E8ECF0' };
 }
 
 export function createSpacer(size: 'xs' | 'sm' | 'md' | 'lg' | 'xl' = 'md'): any {
