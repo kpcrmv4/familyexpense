@@ -65,6 +65,27 @@ export async function getMonthlySummary(
   };
 }
 
+export async function getAccumulatedBalance(
+  userId: string,
+  year: number,
+  month: number
+): Promise<number> {
+  const beforeDate = `${year}-${String(month).padStart(2, '0')}-01`;
+
+  const { data } = await supabase
+    .from('transactions')
+    .select('type, amount')
+    .eq('user_id', userId)
+    .lt('transaction_date', beforeDate);
+
+  if (!data || data.length === 0) return 0;
+
+  const income = data.filter((t) => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
+  const expense = data.filter((t) => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
+
+  return income - expense;
+}
+
 export async function getCategorySummary(
   userId: string,
   year: number,

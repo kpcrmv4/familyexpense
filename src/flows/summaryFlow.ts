@@ -20,15 +20,16 @@ export async function showSummary(
   const targetYear = year || now.getFullYear();
   const targetMonth = month || now.getMonth() + 1;
 
-  const [summary, categoryBreakdown, recurringItems] = await Promise.all([
+  const [summary, categoryBreakdown, recurringItems, accumulatedBalance] = await Promise.all([
     transactionService.getMonthlySummary(user.id, targetYear, targetMonth),
     transactionService.getCategorySummary(user.id, targetYear, targetMonth),
     recurringService.getRecurringWithStatus(user.id, targetYear, targetMonth),
+    transactionService.getAccumulatedBalance(user.id, targetYear, targetMonth),
   ]);
 
   await lineClient.replyMessage({
     replyToken,
-    messages: [summaryFlex.monthlySummaryMessage(summary, categoryBreakdown, recurringItems, theme, targetYear, targetMonth)],
+    messages: [summaryFlex.monthlySummaryMessage(summary, categoryBreakdown, recurringItems, theme, targetYear, targetMonth, accumulatedBalance)],
   });
 }
 
@@ -88,11 +89,13 @@ export async function sendMonthlySummaryToAll(): Promise<void> {
   for (const user of users) {
     try {
       const theme = getGenderTheme(user.gender);
-      const summary = await transactionService.getMonthlySummary(user.id, year, month);
-      const categoryBreakdown = await transactionService.getCategorySummary(user.id, year, month);
-
-      const recurringItems = await recurringService.getRecurringWithStatus(user.id, year, month);
-      const message = summaryFlex.monthlySummaryMessage(summary, categoryBreakdown, recurringItems, theme, year, month);
+      const [summary, categoryBreakdown, recurringItems, accumulatedBalance] = await Promise.all([
+        transactionService.getMonthlySummary(user.id, year, month),
+        transactionService.getCategorySummary(user.id, year, month),
+        recurringService.getRecurringWithStatus(user.id, year, month),
+        transactionService.getAccumulatedBalance(user.id, year, month),
+      ]);
+      const message = summaryFlex.monthlySummaryMessage(summary, categoryBreakdown, recurringItems, theme, year, month, accumulatedBalance);
 
       await lineClient.pushMessage({
         to: user.line_user_id,
