@@ -2,37 +2,37 @@ import { ThemeColors, TransactionColors } from '../types';
 
 const GENDER_THEMES: Record<string, ThemeColors> = {
   male: {
-    primary: '#4A90D9',
-    secondary: '#E8F0FE',
-    accent: '#2C5F9E',
-    text: '#1A1A2E',
-    subtext: '#6B7280',
+    primary: '#7CAED4',
+    secondary: '#EBF4FA',
+    accent: '#5A94BD',
+    text: '#2D3748',
+    subtext: '#718096',
   },
   female: {
-    primary: '#E91E8C',
-    secondary: '#FDE8F4',
-    accent: '#B5156D',
-    text: '#1A1A2E',
-    subtext: '#6B7280',
+    primary: '#D4899E',
+    secondary: '#FBEAF0',
+    accent: '#C07088',
+    text: '#2D3748',
+    subtext: '#718096',
   },
   other: {
-    primary: '#8B5CF6',
-    secondary: '#EDE9FE',
-    accent: '#6D28D9',
-    text: '#1A1A2E',
-    subtext: '#6B7280',
+    primary: '#9E8EC8',
+    secondary: '#F0EDFB',
+    accent: '#8070B0',
+    text: '#2D3748',
+    subtext: '#718096',
   },
 };
 
 const TRANSACTION_COLORS: Record<string, TransactionColors> = {
   income: {
-    highlight: '#10B981',
-    bg: '#D1FAE5',
+    highlight: '#68D391',
+    bg: '#E6FFEC',
     icon: '📥',
   },
   expense: {
-    highlight: '#EF4444',
-    bg: '#FEE2E2',
+    highlight: '#FC8181',
+    bg: '#FFF0F0',
     icon: '📤',
   },
 };
@@ -47,9 +47,9 @@ export function getTransactionColors(type: string): TransactionColors {
 
 // Default theme when user is not registered yet
 export const DEFAULT_THEME: ThemeColors = {
-  primary: '#6366F1',
-  secondary: '#EEF2FF',
-  accent: '#4F46E5',
-  text: '#1A1A2E',
-  subtext: '#6B7280',
+  primary: '#9BA4D6',
+  secondary: '#EEEDF8',
+  accent: '#7C86C1',
+  text: '#2D3748',
+  subtext: '#718096',
 };

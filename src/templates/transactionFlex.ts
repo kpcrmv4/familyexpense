@@ -19,7 +19,7 @@ export function selectTypeMessage(draft: TransactionDraft, theme: ThemeColors): 
               text: draft.description,
               size: 'md',
               weight: 'bold',
-              color: '#1A1A2E',
+              color: '#2D3748',
             },
             {
               type: 'text',
@@ -29,7 +29,7 @@ export function selectTypeMessage(draft: TransactionDraft, theme: ThemeColors): 
               color: theme.primary,
             },
           ],
-          backgroundColor: '#F9FAFB',
+          backgroundColor: '#F7F8FA',
           cornerRadius: 'lg',
           paddingAll: 'lg',
           spacing: 'sm',
@@ -40,7 +40,7 @@ export function selectTypeMessage(draft: TransactionDraft, theme: ThemeColors): 
           type: 'text',
           text: 'รายการนี้เป็นรายรับหรือรายจ่าย?',
           size: 'sm',
-          color: '#6B7280',
+          color: '#718096',
           align: 'center',
         },
       ],
@@ -50,8 +50,8 @@ export function selectTypeMessage(draft: TransactionDraft, theme: ThemeColors): 
       type: 'box',
       layout: 'horizontal',
       contents: [
-        createButton('📤 รายจ่าย', JSON.stringify({ action: 'select_type', type: 'expense' }), 'primary', '#EF4444'),
-        createButton('📥 รายรับ', JSON.stringify({ action: 'select_type', type: 'income' }), 'primary', '#10B981'),
+        createButton('📤 รายจ่าย', JSON.stringify({ action: 'select_type', type: 'expense' }), 'primary', '#FC8181'),
+        createButton('📥 รายรับ', JSON.stringify({ action: 'select_type', type: 'income' }), 'primary', '#68D391'),
       ],
       paddingAll: 'lg',
       spacing: 'sm',
@@ -118,7 +118,7 @@ export function selectCategoryMessage(
       type: 'box',
       layout: 'vertical',
       contents: [
-        createButton('➕ เพิ่มหมวดหมู่ใหม่', JSON.stringify({ action: 'add_custom_category' }), 'primary', '#6366F1'),
+        createButton('➕ เพิ่มหมวดหมู่ใหม่', JSON.stringify({ action: 'add_custom_category' }), 'primary', '#9BA4D6'),
         createButton('❌ ยกเลิก', JSON.stringify({ action: 'cancel' }), 'secondary'),
       ],
       paddingAll: 'lg',
@@ -136,9 +136,9 @@ export function askCustomCategoryNameMessage(type: 'income' | 'expense', theme: 
       type: 'box',
       layout: 'vertical',
       contents: [
-        { type: 'text', text: 'พิมพ์ชื่อหมวดหมู่ใหม่', size: 'md', weight: 'bold', color: '#1A1A2E', align: 'center' },
+        { type: 'text', text: 'พิมพ์ชื่อหมวดหมู่ใหม่', size: 'md', weight: 'bold', color: '#2D3748', align: 'center' },
         createSpacer('sm'),
-        { type: 'text', text: 'เช่น "ค่าสัตว์เลี้ยง" "ฟิตเนส"', size: 'xs', color: '#9CA3AF', align: 'center' },
+        { type: 'text', text: 'เช่น "ค่าสัตว์เลี้ยง" "ฟิตเนส"', size: 'xs', color: '#A0AEC0', align: 'center' },
       ],
       paddingAll: 'xl',
     },
@@ -183,7 +183,7 @@ export function confirmTransactionMessage(
               type: 'text',
               text: draft.description,
               size: 'md',
-              color: '#1A1A2E',
+              color: '#2D3748',
               align: 'center',
               weight: 'bold',
             },
@@ -256,7 +256,7 @@ export function transactionSuccessMessage(
           type: 'text',
           text: description,
           size: 'sm',
-          color: '#6B7280',
+          color: '#718096',
           align: 'center',
         },
         createSpacer('xs'),
@@ -264,7 +264,7 @@ export function transactionSuccessMessage(
           type: 'text',
           text: `📁 ${categoryName}`,
           size: 'xs',
-          color: '#9CA3AF',
+          color: '#A0AEC0',
           align: 'center',
         },
       ],
@@ -309,7 +309,7 @@ export function slipParsedMessage(
           type: 'text',
           text: 'รายการนี้เป็นรายรับหรือรายจ่าย?',
           size: 'sm',
-          color: '#6B7280',
+          color: '#718096',
           align: 'center',
         },
       ],
@@ -319,8 +319,8 @@ export function slipParsedMessage(
       type: 'box',
       layout: 'horizontal',
       contents: [
-        createButton('📤 รายจ่าย', JSON.stringify({ action: 'select_type', type: 'expense' }), 'primary', '#EF4444'),
-        createButton('📥 รายรับ', JSON.stringify({ action: 'select_type', type: 'income' }), 'primary', '#10B981'),
+        createButton('📤 รายจ่าย', JSON.stringify({ action: 'select_type', type: 'expense' }), 'primary', '#FC8181'),
+        createButton('📥 รายรับ', JSON.stringify({ action: 'select_type', type: 'income' }), 'primary', '#68D391'),
       ],
       paddingAll: 'lg',
       spacing: 'sm',
@@ -346,7 +346,7 @@ export function slipDateMismatchMessage(
           type: 'text',
           text: 'วันที่ในสลิปไม่ตรงกับวันนี้',
           size: 'sm',
-          color: '#6B7280',
+          color: '#718096',
           align: 'center',
         },
         createSpacer('md'),
@@ -358,7 +358,7 @@ export function slipDateMismatchMessage(
           type: 'text',
           text: 'ต้องการบันทึกเป็นวันที่ไหน?',
           size: 'sm',
-          color: '#6B7280',
+          color: '#718096',
           align: 'center',
         },
       ],
@@ -399,7 +399,7 @@ export function slipSuggestTypeMessage(
   theme: ThemeColors
 ): any {
   const typeLabel = suggestedType === 'income' ? '📥 รายรับ' : '📤 รายจ่าย';
-  const typeColor = suggestedType === 'income' ? '#10B981' : '#EF4444';
+  const typeColor = suggestedType === 'income' ? '#68D391' : '#FC8181';
   const confirmLabel = suggestedType === 'income' ? '✅ ใช่ รายรับ' : '✅ ใช่ รายจ่าย';
 
   return createFlexMessage('อ่านสลิปสำเร็จ', createBubble({
@@ -437,7 +437,7 @@ export function slipSuggestTypeMessage(
           type: 'text',
           text: `(ตรงกับบัญชีของคุณ: ${matchedName})`,
           size: 'xxs',
-          color: '#9CA3AF',
+          color: '#A0AEC0',
           align: 'center',
         },
       ],
@@ -473,7 +473,7 @@ export function slipFlipTypeMessage(
   theme: ThemeColors
 ): any {
   const typeLabel = flippedType === 'income' ? '📥 รายรับ' : '📤 รายจ่าย';
-  const typeColor = flippedType === 'income' ? '#10B981' : '#EF4444';
+  const typeColor = flippedType === 'income' ? '#68D391' : '#FC8181';
   const confirmLabel = flippedType === 'income' ? '✅ ใช่ รายรับ' : '✅ ใช่ รายจ่าย';
 
   return createFlexMessage('เปลี่ยนประเภท', createBubble({
@@ -495,7 +495,7 @@ export function slipFlipTypeMessage(
           type: 'text',
           text: 'ใช่ไหม?',
           size: 'sm',
-          color: '#6B7280',
+          color: '#718096',
           align: 'center',
         },
       ],
@@ -554,7 +554,7 @@ export function slipAutoSummaryMessage(
           type: 'text',
           text: draft.description,
           size: 'md',
-          color: '#1A1A2E',
+          color: '#2D3748',
           align: 'center',
           weight: 'bold',
         },
@@ -577,7 +577,7 @@ export function slipAutoSummaryMessage(
           type: 'text',
           text: '🤖 ระบบจดจำผู้รับและหมวดหมู่อัตโนมัติ',
           size: 'xxs',
-          color: '#9CA3AF',
+          color: '#A0AEC0',
           align: 'center',
         },
       ],
@@ -619,7 +619,7 @@ export function slipAutoEditMessage(theme: ThemeColors): any {
           type: 'text',
           text: 'เลือกสิ่งที่ต้องการแก้ไข',
           size: 'sm',
-          color: '#6B7280',
+          color: '#718096',
           align: 'center',
         },
       ],

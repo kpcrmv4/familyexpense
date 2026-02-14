@@ -13,14 +13,14 @@ export function welcomeMessage(): any {
           text: 'สวัสดีค่ะ! 👋',
           size: 'lg',
           weight: 'bold',
-          color: '#1A1A2E',
+          color: '#2D3748',
         },
         createSpacer('sm'),
         {
           type: 'text',
           text: 'ฉันคือผู้ช่วยจัดการรายรับรายจ่าย\nของครอบครัวคุณค่ะ',
           size: 'sm',
-          color: '#6B7280',
+          color: '#718096',
           wrap: true,
         },
         createSpacer('md'),
@@ -51,7 +51,7 @@ export function askNameMessage(): any {
           text: 'คุณชื่ออะไรคะ?',
           size: 'lg',
           weight: 'bold',
-          color: '#1A1A2E',
+          color: '#2D3748',
           align: 'center',
         },
         createSpacer('sm'),
@@ -59,7 +59,7 @@ export function askNameMessage(): any {
           type: 'text',
           text: 'กรุณาพิมพ์ชื่อที่ต้องการให้บอทเรียก',
           size: 'xs',
-          color: '#6B7280',
+          color: '#718096',
           align: 'center',
           wrap: true,
         },
@@ -83,7 +83,7 @@ export function askGenderMessage(name: string): any {
           text: `สวัสดีคุณ${name} 😊`,
           size: 'md',
           weight: 'bold',
-          color: '#1A1A2E',
+          color: '#2D3748',
           align: 'center',
         },
         createSpacer('sm'),
@@ -91,7 +91,7 @@ export function askGenderMessage(name: string): any {
           type: 'text',
           text: 'เลือกเพศเพื่อปรับธีมสีให้เหมาะกับคุณ',
           size: 'xs',
-          color: '#6B7280',
+          color: '#718096',
           align: 'center',
           wrap: true,
         },
@@ -103,8 +103,8 @@ export function askGenderMessage(name: string): any {
       type: 'box',
       layout: 'vertical',
       contents: [
-        createButton('👨 ผู้ชาย', JSON.stringify({ action: 'register_gender', gender: 'male' }), 'primary', '#4A90D9'),
-        createButton('👩 ผู้หญิง', JSON.stringify({ action: 'register_gender', gender: 'female' }), 'primary', '#E91E8C'),
+        createButton('👨 ผู้ชาย', JSON.stringify({ action: 'register_gender', gender: 'male' }), 'primary', '#7CAED4'),
+        createButton('👩 ผู้หญิง', JSON.stringify({ action: 'register_gender', gender: 'female' }), 'primary', '#D4899E'),
         createButton('🌈 ไม่ระบุ', JSON.stringify({ action: 'register_gender', gender: 'other' }), 'secondary'),
       ],
       paddingAll: 'lg',
@@ -116,10 +116,10 @@ export function askGenderMessage(name: string): any {
 
 export function registerSuccessMessage(name: string, gender: string): any {
   const genderTheme = gender === 'male'
-    ? { primary: '#4A90D9', emoji: '👨', label: 'ผู้ชาย' }
+    ? { primary: '#7CAED4', emoji: '👨', label: 'ผู้ชาย' }
     : gender === 'female'
-    ? { primary: '#E91E8C', emoji: '👩', label: 'ผู้หญิง' }
-    : { primary: '#8B5CF6', emoji: '🌈', label: 'ไม่ระบุ' };
+    ? { primary: '#D4899E', emoji: '👩', label: 'ผู้หญิง' }
+    : { primary: '#9E8EC8', emoji: '🌈', label: 'ไม่ระบุ' };
 
   return createFlexMessage('ลงทะเบียนสำเร็จ!', createBubble({
     header: createHeader('ลงทะเบียนสำเร็จ! ✅', 'พร้อมใช้งานแล้ว'),
@@ -132,7 +132,7 @@ export function registerSuccessMessage(name: string, gender: string): any {
           text: `${genderTheme.emoji} คุณ${name}`,
           size: 'xl',
           weight: 'bold',
-          color: '#1A1A2E',
+          color: '#2D3748',
           align: 'center',
         },
         createSpacer('md'),
@@ -144,7 +144,7 @@ export function registerSuccessMessage(name: string, gender: string): any {
               type: 'text',
               text: '🎉 ยินดีต้อนรับสู่ Family Expense!',
               size: 'sm',
-              color: '#1A1A2E',
+              color: '#2D3748',
               align: 'center',
               weight: 'bold',
             },
@@ -153,12 +153,12 @@ export function registerSuccessMessage(name: string, gender: string): any {
               type: 'text',
               text: '📱 ใช้เมนูด้านล่างเพื่อเริ่มต้น\n💬 หรือพิมพ์รายจ่าย เช่น "ค่ากาแฟ 60"\n📸 หรือส่งรูปสลิปโอนเงิน',
               size: 'xs',
-              color: '#6B7280',
+              color: '#718096',
               wrap: true,
               align: 'center',
             },
           ],
-          backgroundColor: '#F9FAFB',
+          backgroundColor: '#F7F8FA',
           cornerRadius: 'lg',
           paddingAll: 'lg',
         },
@@ -167,10 +167,10 @@ export function registerSuccessMessage(name: string, gender: string): any {
     },
     theme: {
       primary: genderTheme.primary,
-      secondary: '#F9FAFB',
+      secondary: '#F7F8FA',
       accent: genderTheme.primary,
-      text: '#1A1A2E',
-      subtext: '#6B7280',
+      text: '#2D3748',
+      subtext: '#718096',
     },
   }));
 }
@@ -186,7 +186,7 @@ export function alreadyRegisteredMessage(name: string): any {
           type: 'text',
           text: `คุณ${name} ลงทะเบียนแล้วค่ะ 😊`,
           size: 'sm',
-          color: '#1A1A2E',
+          color: '#2D3748',
           align: 'center',
           wrap: true,
         },
@@ -195,7 +195,7 @@ export function alreadyRegisteredMessage(name: string): any {
           type: 'text',
           text: 'ใช้เมนูด้านล่างหรือพิมพ์รายการได้เลย!',
           size: 'xs',
-          color: '#6B7280',
+          color: '#718096',
           align: 'center',
           wrap: true,
         },
@@ -217,7 +217,7 @@ export function pleaseRegisterMessage(): any {
           type: 'text',
           text: 'กรุณาพิมพ์ "ลงทะเบียน" ก่อนใช้งานค่ะ',
           size: 'sm',
-          color: '#1A1A2E',
+          color: '#2D3748',
           align: 'center',
           wrap: true,
         },
