@@ -5,6 +5,7 @@ import * as recurringService from '../services/recurringService';
 import * as geminiService from '../services/geminiService';
 import * as summaryFlex from '../templates/summaryFlex';
 import { getGenderTheme } from '../utils/themeColors';
+import { todayDateString } from '../utils/formatters';
 
 export async function showSummary(
   replyToken: string,
@@ -19,18 +20,24 @@ export async function showSummary(
   const now = new Date();
   const targetYear = year || now.getFullYear();
   const targetMonth = month || now.getMonth() + 1;
+  const today = todayDateString();
 
-  const [summary, categoryBreakdown, recurringItems, accumulatedBalance, dailyData] = await Promise.all([
+  const [summary, categoryBreakdown, recurringItems, accumulatedBalance, dailySummary, recentTransactions] = await Promise.all([
     transactionService.getMonthlySummary(user.id, targetYear, targetMonth),
     transactionService.getCategorySummary(user.id, targetYear, targetMonth),
     recurringService.getRecurringWithStatus(user.id, targetYear, targetMonth),
     transactionService.getAccumulatedBalance(user.id, targetYear, targetMonth),
-    transactionService.getDailyBreakdown(user.id, targetYear, targetMonth),
+    transactionService.getDailySummary(user.id, today),
+    transactionService.getRecentTransactions(user.id, 5),
   ]);
 
   await lineClient.replyMessage({
     replyToken,
-    messages: [summaryFlex.monthlySummaryMessage(summary, categoryBreakdown, recurringItems, theme, targetYear, targetMonth, accumulatedBalance, dailyData)],
+    messages: [summaryFlex.monthlySummaryMessage(summary, categoryBreakdown, recurringItems, theme, targetYear, targetMonth, accumulatedBalance, {
+      dailySummary,
+      recentTransactions,
+      todayDate: today,
+    })],
   });
 }
 
@@ -87,17 +94,24 @@ export async function sendMonthlySummaryToAll(): Promise<void> {
     year -= 1;
   }
 
+  const today = todayDateString();
+
   for (const user of users) {
     try {
       const theme = getGenderTheme(user.gender);
-      const [summary, categoryBreakdown, recurringItems, accumulatedBalance, dailyData] = await Promise.all([
+      const [summary, categoryBreakdown, recurringItems, accumulatedBalance, dailySummary, recentTransactions] = await Promise.all([
         transactionService.getMonthlySummary(user.id, year, month),
         transactionService.getCategorySummary(user.id, year, month),
         recurringService.getRecurringWithStatus(user.id, year, month),
         transactionService.getAccumulatedBalance(user.id, year, month),
-        transactionService.getDailyBreakdown(user.id, year, month),
+        transactionService.getDailySummary(user.id, today),
+        transactionService.getRecentTransactions(user.id, 5),
       ]);
-      const message = summaryFlex.monthlySummaryMessage(summary, categoryBreakdown, recurringItems, theme, year, month, accumulatedBalance, dailyData);
+      const message = summaryFlex.monthlySummaryMessage(summary, categoryBreakdown, recurringItems, theme, year, month, accumulatedBalance, {
+        dailySummary,
+        recentTransactions,
+        todayDate: today,
+      });
 
       await lineClient.pushMessage({
         to: user.line_user_id,

@@ -113,6 +113,39 @@ export async function getDailyBreakdown(
     .map(([day, data]) => ({ day, ...data }));
 }
 
+export async function getDailySummary(
+  userId: string,
+  date: string
+): Promise<{ total_income: number; total_expense: number }> {
+  const { data } = await supabase
+    .from('transactions')
+    .select('type, amount')
+    .eq('user_id', userId)
+    .eq('transaction_date', date);
+
+  if (!data || data.length === 0) return { total_income: 0, total_expense: 0 };
+
+  const total_income = data.filter((t) => t.type === 'income').reduce((sum, t) => sum + Number(t.amount), 0);
+  const total_expense = data.filter((t) => t.type === 'expense').reduce((sum, t) => sum + Number(t.amount), 0);
+
+  return { total_income, total_expense };
+}
+
+export async function getRecentTransactions(
+  userId: string,
+  limit: number = 5
+): Promise<(Transaction & { categories: { name: string; icon: string } | null })[]> {
+  const { data } = await supabase
+    .from('transactions')
+    .select('*, categories(name, icon)')
+    .eq('user_id', userId)
+    .order('transaction_date', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(limit);
+
+  return (data as any) || [];
+}
+
 export async function getCategorySummary(
   userId: string,
   year: number,

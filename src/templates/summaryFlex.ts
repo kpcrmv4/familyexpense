@@ -1,6 +1,6 @@
-import { ThemeColors, GeminiRecommendation, RecurringWithStatus } from '../types';
+import { ThemeColors, GeminiRecommendation, RecurringWithStatus, Transaction } from '../types';
 import { createFlexMessage, createBubble, createHeader, createButton, createTextRow, createSeparator, createSpacer } from './flexMessages';
-import { formatCurrency, getThaiMonthYear, getCurrentThaiMonth } from '../utils/formatters';
+import { formatCurrency, getThaiMonthYear, getCurrentThaiMonth, formatThaiDate } from '../utils/formatters';
 import { getTransactionColors } from '../utils/themeColors';
 
 // ===== Category Row Helper =====
@@ -419,109 +419,67 @@ function savingsBubble(
   });
 }
 
-// ===== Bubble 4: Daily Calendar Heat-map =====
+// ===== Bubble 4: Daily Summary =====
 
-function dailyChartBubble(
-  dailyData: { day: number; income: number; expense: number }[],
-  totalIncome: number,
-  totalExpense: number,
+function dailySummaryBubble(
+  dailySummary: { total_income: number; total_expense: number },
+  recentTransactions: (Transaction & { categories: { name: string; icon: string } | null })[],
   theme: ThemeColors,
-  displayMonth: string,
-  year: number,
-  month: number
+  todayDate: string
 ): any {
-  const dayMap = new Map(dailyData.map((d) => [d.day, d]));
-  const daysInMonth = dailyData.length;
+  const displayDate = formatThaiDate(todayDate);
 
-  // Monday-based offset (จ=0 ... อา=6)
-  const jsDay = new Date(year, month - 1, 1).getDay(); // 0=Sun
-  const startOffset = jsDay === 0 ? 6 : jsDay - 1;
+  // Transaction list rows
+  const transactionRows: any[] = recentTransactions.length > 0
+    ? recentTransactions.flatMap((tx, i) => {
+        const icon = tx.categories?.icon || '📌';
+        const name = tx.description || tx.categories?.name || 'ไม่ระบุ';
+        const isIncome = tx.type === 'income';
+        const amountText = `${isIncome ? '+' : '-'}฿${formatCurrency(Number(tx.amount))}`;
+        const amountColor = isIncome ? '#10B981' : '#EF4444';
 
-  // Day name header row
-  const dayNames = ['จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส', 'อา'];
-  const headerRow: any = {
-    type: 'box',
-    layout: 'horizontal',
-    contents: dayNames.map((name, i) => ({
-      type: 'text',
-      text: name,
-      size: 'xxs',
-      color: i >= 5 ? '#EF4444' : '#6B7280',
-      align: 'center',
-      flex: 1,
-      weight: 'bold',
-    })),
-    spacing: 'xs',
-  };
-
-  // Build week rows
-  const numWeeks = Math.ceil((startOffset + daysInMonth) / 7);
-  const weekRows: any[] = [];
-
-  for (let w = 0; w < numWeeks; w++) {
-    const cells: any[] = [];
-    for (let d = 0; d < 7; d++) {
-      const day = w * 7 + d - startOffset + 1;
-
-      if (day < 1 || day > daysInMonth) {
-        // Empty padding cell
-        cells.push({ type: 'box', layout: 'vertical', contents: [], flex: 1, height: '26px' });
-      } else {
-        const data = dayMap.get(day);
-        const hasData = data != null && (data.income > 0 || data.expense > 0);
-        const net = data ? data.income - data.expense : 0;
-
-        let bgColor = '#FFFFFF';
-        let textColor = '#9CA3AF';
-
-        if (hasData) {
-          if (net > 0) {
-            bgColor = '#D1FAE5';
-            textColor = '#059669';
-          } else if (net < 0) {
-            bgColor = '#FEE2E2';
-            textColor = '#DC2626';
-          } else {
-            bgColor = '#FEF3C7';
-            textColor = '#D97706';
-          }
-        }
-
-        cells.push({
-          type: 'box',
-          layout: 'vertical',
-          contents: [{
-            type: 'text',
-            text: String(day),
-            size: 'xxs',
-            align: 'center',
-            color: textColor,
-            weight: hasData ? 'bold' : 'regular',
-          }],
-          backgroundColor: bgColor,
-          cornerRadius: 'sm',
-          flex: 1,
-          height: '26px',
-          justifyContent: 'center',
-        });
-      }
-    }
-
-    weekRows.push({
-      type: 'box',
-      layout: 'horizontal',
-      contents: cells,
-      spacing: 'xs',
-    });
-  }
+        return [
+          ...(i > 0 ? [createSpacer('xs')] : []),
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              { type: 'text', text: icon, size: 'sm', flex: 0 },
+              {
+                type: 'box',
+                layout: 'vertical',
+                contents: [
+                  { type: 'text', text: name, size: 'xs', color: '#1A1A2E', weight: 'bold' },
+                  { type: 'text', text: formatThaiDate(tx.transaction_date), size: 'xxs', color: '#9CA3AF' },
+                ],
+                flex: 1,
+              },
+              {
+                type: 'text',
+                text: amountText,
+                size: 'xs',
+                weight: 'bold',
+                color: amountColor,
+                align: 'end',
+                gravity: 'center',
+              },
+            ],
+            spacing: 'sm',
+            backgroundColor: '#F9FAFB',
+            cornerRadius: 'md',
+            paddingAll: 'sm',
+          },
+        ];
+      })
+    : [{ type: 'text', text: 'ยังไม่มีรายการ', size: 'sm', color: '#9CA3AF', align: 'center' }];
 
   return createBubble({
-    header: createHeader('ปฏิทินรายรับรายจ่าย', displayMonth, '📅'),
+    header: createHeader('สรุปรายรับรายจ่ายประจำวัน', displayDate, '📊'),
     body: {
       type: 'box',
       layout: 'vertical',
       contents: [
-        // Summary row
+        // Income / Expense cards
         {
           type: 'box',
           layout: 'horizontal',
@@ -530,59 +488,36 @@ function dailyChartBubble(
               type: 'box',
               layout: 'vertical',
               contents: [
-                { type: 'text', text: '📥 รายรับ', size: 'xxs', color: '#6B7280', align: 'center' },
-                { type: 'text', text: `฿${formatCurrency(totalIncome)}`, size: 'sm', weight: 'bold', color: '#10B981', align: 'center' },
+                { type: 'text', text: '📥 รายรับวันนี้', size: 'xxs', color: '#6B7280', align: 'center' },
+                { type: 'text', text: `฿${formatCurrency(dailySummary.total_income)}`, size: 'md', weight: 'bold', color: '#10B981', align: 'center' },
               ],
               backgroundColor: '#D1FAE5',
               cornerRadius: 'md',
-              paddingAll: 'sm',
+              paddingAll: 'md',
               flex: 1,
             },
             {
               type: 'box',
               layout: 'vertical',
               contents: [
-                { type: 'text', text: '📤 รายจ่าย', size: 'xxs', color: '#6B7280', align: 'center' },
-                { type: 'text', text: `฿${formatCurrency(totalExpense)}`, size: 'sm', weight: 'bold', color: '#EF4444', align: 'center' },
+                { type: 'text', text: '📤 รายจ่ายวันนี้', size: 'xxs', color: '#6B7280', align: 'center' },
+                { type: 'text', text: `฿${formatCurrency(dailySummary.total_expense)}`, size: 'md', weight: 'bold', color: '#EF4444', align: 'center' },
               ],
               backgroundColor: '#FEE2E2',
               cornerRadius: 'md',
-              paddingAll: 'sm',
+              paddingAll: 'md',
               flex: 1,
             },
           ],
           spacing: 'sm',
         },
+        // Recent transactions
         createSpacer('md'),
-        // Calendar grid
-        {
-          type: 'box',
-          layout: 'vertical',
-          contents: [headerRow, ...weekRows],
-          spacing: 'xs',
-          backgroundColor: '#F9FAFB',
-          cornerRadius: 'md',
-          paddingAll: 'sm',
-        },
+        createSeparator(),
+        createSpacer('md'),
+        { type: 'text', text: '📋 รายการล่าสุด', size: 'xs', weight: 'bold', color: '#1A1A2E' },
         createSpacer('sm'),
-        // Legend
-        {
-          type: 'box',
-          layout: 'horizontal',
-          contents: [
-            { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#D1FAE5', height: '8px', width: '8px', cornerRadius: 'xs' },
-            { type: 'text', text: 'รับ>จ่าย', size: 'xxs', color: '#6B7280' },
-            { type: 'box', layout: 'vertical', contents: [], width: '8px', height: '1px' },
-            { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#FEE2E2', height: '8px', width: '8px', cornerRadius: 'xs' },
-            { type: 'text', text: 'จ่าย>รับ', size: 'xxs', color: '#6B7280' },
-            { type: 'box', layout: 'vertical', contents: [], width: '8px', height: '1px' },
-            { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#FEF3C7', height: '8px', width: '8px', cornerRadius: 'xs' },
-            { type: 'text', text: 'เท่ากัน', size: 'xxs', color: '#6B7280' },
-          ],
-          justifyContent: 'center',
-          spacing: 'sm',
-          alignItems: 'center',
-        },
+        ...transactionRows,
       ],
       paddingAll: 'lg',
       spacing: 'none' as any,
@@ -601,15 +536,24 @@ export function monthlySummaryMessage(
   year?: number,
   month?: number,
   accumulatedBalance?: number,
-  dailyData?: { day: number; income: number; expense: number }[]
+  dailySummaryData?: {
+    dailySummary: { total_income: number; total_expense: number };
+    recentTransactions: (Transaction & { categories: { name: string; icon: string } | null })[];
+    todayDate: string;
+  }
 ): any {
   const displayMonth = year && month ? getThaiMonthYear(year, month) : getCurrentThaiMonth();
 
   const bubbles: any[] = [];
 
-  // Card 1: Calendar heat-map (if data available)
-  if (dailyData && dailyData.length > 0 && year && month) {
-    bubbles.push(dailyChartBubble(dailyData, summary.total_income, summary.total_expense, theme, displayMonth, year, month));
+  // Card 1: Daily summary
+  if (dailySummaryData) {
+    bubbles.push(dailySummaryBubble(
+      dailySummaryData.dailySummary,
+      dailySummaryData.recentTransactions,
+      theme,
+      dailySummaryData.todayDate
+    ));
   }
 
   // Card 2: Summary
