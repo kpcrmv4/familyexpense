@@ -368,6 +368,63 @@ export async function handleCategorySelect(
   });
 }
 
+// ===== Custom Category: Start =====
+
+export async function handleAddCustomCategory(
+  replyToken: string,
+  lineUserId: string,
+  stateData: Record<string, any>
+): Promise<void> {
+  const draft = stateData.draft as TransactionDraft;
+
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+  const theme = getGenderTheme(user.gender);
+
+  await stateService.setState(lineUserId, 'add_custom_category_name', stateData);
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [transactionFlex.askCustomCategoryNameMessage(draft.type!, theme)],
+  });
+}
+
+// ===== Custom Category: Name Input =====
+
+export async function handleCustomCategoryNameInput(
+  replyToken: string,
+  lineUserId: string,
+  name: string,
+  stateData: Record<string, any>
+): Promise<void> {
+  const draft = stateData.draft as TransactionDraft;
+  const userId = stateData.userId as string;
+  const slipContext = stateData.slipContext;
+
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+  const theme = getGenderTheme(user.gender);
+
+  const trimmed = name.trim();
+  if (!trimmed || trimmed.length > 20) {
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [errorMessage('ชื่อหมวดหมู่ต้องไม่เกิน 20 ตัวอักษร กรุณาพิมพ์ใหม่')],
+    });
+    return;
+  }
+
+  const newCategory = await categoryService.addCategory(userId, trimmed, draft.type!);
+
+  draft.category_id = newCategory.id;
+  draft.category_name = newCategory.name;
+
+  await stateService.setState(lineUserId, 'confirm_transaction', { draft, userId, slipContext });
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [transactionFlex.confirmTransactionMessage(draft, theme)],
+  });
+}
+
 // ===== Confirm & Save =====
 
 export async function handleConfirm(

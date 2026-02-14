@@ -75,6 +75,12 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       }
       break;
 
+    case 'add_custom_category':
+      if (currentState?.state === 'select_category') {
+        await transactionFlow.handleAddCustomCategory(replyToken, lineUserId, currentState.data);
+      }
+      break;
+
     case 'confirm_transaction':
       if (currentState?.state === 'confirm_transaction') {
         await transactionFlow.handleConfirm(replyToken, lineUserId, currentState.data);
