@@ -1,4 +1,4 @@
-import { RecurringExpense, ThemeColors } from '../types';
+import { ThemeColors } from '../types';
 import { createFlexMessage, createBubble, createHeader, createButton, createSpacer } from './flexMessages';
 import { formatCurrency } from '../utils/formatters';
 import { getMotivationalMessage } from './recurringFlex';
@@ -74,23 +74,16 @@ function singleReminderBubble(
           'primary',
           '#10B981'
         ),
-        {
-          type: 'box',
-          layout: 'horizontal',
-          contents: [
-            createButton('1 วัน', JSON.stringify({ action: 'reminder_snooze', id: item.id, days: 1 }), 'secondary'),
-            createButton('3 วัน', JSON.stringify({ action: 'reminder_snooze', id: item.id, days: 3 }), 'secondary'),
-            createButton('5 วัน', JSON.stringify({ action: 'reminder_snooze', id: item.id, days: 5 }), 'secondary'),
-          ],
-          spacing: 'sm',
-        },
-        {
-          type: 'text',
-          text: '⏰ เลื่อนการแจ้งเตือน',
-          size: 'xxs',
-          color: '#9CA3AF',
-          align: 'center',
-        },
+        createButton(
+          '📅 เลื่อนจ่าย (ระบุวันที่)',
+          JSON.stringify({ action: 'reminder_snooze_pick_date', id: item.id }),
+          'secondary'
+        ),
+        createButton(
+          '⏭️ ยกยอดไปเดือนหน้า',
+          JSON.stringify({ action: 'reminder_postpone_next_month', id: item.id }),
+          'secondary'
+        ),
       ],
       paddingAll: 'lg',
       spacing: 'sm',
@@ -106,10 +99,21 @@ function singleReminderMessage(
   return createFlexMessage('แจ้งเตือนชำระเงิน', singleReminderBubble(item, theme));
 }
 
-// Variable amount: ask user to input actual amount
-export function reminderAskAmountMessage(name: string, lastAmount: number, theme: ThemeColors): any {
+// Ask user to input payment amount (variable, debt, or fixed with edit option)
+export function reminderAskAmountMessage(
+  name: string,
+  lastAmount: number,
+  theme: ThemeColors,
+  isFixed?: boolean
+): any {
+  const headerText = isFixed ? 'ยืนยัน/แก้ไขยอดชำระ 💰' : 'ระบุยอดชำระจริง 💰';
+  const refLabel = isFixed ? 'ยอดประจำ' : 'ยอดเดือนก่อน';
+  const hintText = isFixed
+    ? `พิมพ์ยอดที่จ่ายจริง หรือกด "ยืนยันยอด" ด้านล่าง`
+    : 'พิมพ์จำนวนเงิน เช่น 850';
+
   return createFlexMessage('ระบุยอดชำระ', createBubble({
-    header: createHeader('ระบุยอดชำระจริง 💰', ''),
+    header: createHeader(headerText, ''),
     body: {
       type: 'box',
       layout: 'vertical',
@@ -125,7 +129,7 @@ export function reminderAskAmountMessage(name: string, lastAmount: number, theme
         createSpacer('sm'),
         ...(lastAmount > 0 ? [{
           type: 'text' as const,
-          text: `ยอดเดือนก่อน: ฿${formatCurrency(lastAmount)}`,
+          text: `${refLabel}: ฿${formatCurrency(lastAmount)}`,
           size: 'xs' as const,
           color: '#6B7280',
           align: 'center' as const,
@@ -133,7 +137,7 @@ export function reminderAskAmountMessage(name: string, lastAmount: number, theme
         createSpacer('md'),
         {
           type: 'text',
-          text: 'เดือนนี้จ่ายเท่าไหร่?',
+          text: isFixed ? 'จ่ายยอดเดิมหรือแก้ไข?' : 'เดือนนี้จ่ายเท่าไหร่?',
           size: 'sm',
           color: '#6B7280',
           align: 'center',
@@ -141,10 +145,11 @@ export function reminderAskAmountMessage(name: string, lastAmount: number, theme
         createSpacer('sm'),
         {
           type: 'text',
-          text: 'พิมพ์จำนวนเงิน เช่น 850',
+          text: hintText,
           size: 'xxs',
           color: '#9CA3AF',
           align: 'center',
+          wrap: true,
         },
       ],
       paddingAll: 'xl',
@@ -153,9 +158,18 @@ export function reminderAskAmountMessage(name: string, lastAmount: number, theme
       type: 'box',
       layout: 'vertical',
       contents: [
+        ...(isFixed && lastAmount > 0 ? [
+          createButton(
+            `✅ ยืนยันยอด ฿${formatCurrency(lastAmount)}`,
+            JSON.stringify({ action: 'reminder_confirm_fixed', amount: lastAmount }),
+            'primary',
+            '#10B981'
+          ),
+        ] : []),
         createButton('❌ ยกเลิก', JSON.stringify({ action: 'cancel' }), 'secondary'),
       ],
       paddingAll: 'lg',
+      spacing: 'sm',
     },
     theme,
   }));
@@ -240,7 +254,7 @@ export function reminderPaidMessage(
   }));
 }
 
-export function reminderSnoozedMessage(name: string, days: number, theme: ThemeColors): any {
+export function reminderSnoozedMessage(name: string, snoozeDate: string, theme: ThemeColors): any {
   return createFlexMessage('เลื่อนแจ้งเตือน', createBubble({
     header: createHeader('เลื่อนแจ้งเตือน ⏰', ''),
     body: {
@@ -258,9 +272,101 @@ export function reminderSnoozedMessage(name: string, days: number, theme: ThemeC
         createSpacer('sm'),
         {
           type: 'text',
-          text: `จะแจ้งเตือนอีกครั้งใน ${days} วัน`,
+          text: `จะแจ้งเตือนอีกครั้งวันที่ ${snoozeDate}`,
           size: 'sm',
           color: '#6B7280',
+          align: 'center',
+          wrap: true,
+        },
+      ],
+      paddingAll: 'xl',
+    },
+    theme,
+  }));
+}
+
+export function reminderAskSnoozeDateMessage(name: string, dueDay: number, theme: ThemeColors): any {
+  // Get remaining days in current month
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+  return createFlexMessage('เลือกวันที่เลื่อน', createBubble({
+    header: createHeader('เลื่อนจ่าย 📅', ''),
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'text',
+          text: `📅 ${name}`,
+          size: 'md',
+          weight: 'bold',
+          color: '#1A1A2E',
+          align: 'center',
+        },
+        createSpacer('sm'),
+        {
+          type: 'text',
+          text: `พิมพ์วันที่ในเดือนนี้ (${now.getDate()}-${lastDay})`,
+          size: 'sm',
+          color: '#6B7280',
+          align: 'center',
+          wrap: true,
+        },
+        createSpacer('sm'),
+        {
+          type: 'text',
+          text: 'เช่น พิมพ์ 25 เพื่อเลื่อนไปวันที่ 25',
+          size: 'xxs',
+          color: '#9CA3AF',
+          align: 'center',
+          wrap: true,
+        },
+      ],
+      paddingAll: 'xl',
+    },
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        createButton('❌ ยกเลิก', JSON.stringify({ action: 'cancel' }), 'secondary'),
+      ],
+      paddingAll: 'lg',
+    },
+    theme,
+  }));
+}
+
+export function reminderPostponedMessage(name: string, nextMonthDate: string, theme: ThemeColors): any {
+  return createFlexMessage('ยกยอดไปเดือนหน้า', createBubble({
+    header: createHeader('ยกยอดเรียบร้อย ⏭️', ''),
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'text',
+          text: `📅 ${name}`,
+          size: 'md',
+          weight: 'bold',
+          color: '#1A1A2E',
+          align: 'center',
+        },
+        createSpacer('sm'),
+        {
+          type: 'text',
+          text: `ยกยอดไปแจ้งเตือนวันที่ ${nextMonthDate}`,
+          size: 'sm',
+          color: '#6B7280',
+          align: 'center',
+          wrap: true,
+        },
+        createSpacer('xs'),
+        {
+          type: 'text',
+          text: 'ระบบจะแจ้งเตือนอีกครั้งในเดือนหน้า',
+          size: 'xxs',
+          color: '#9CA3AF',
           align: 'center',
         },
       ],

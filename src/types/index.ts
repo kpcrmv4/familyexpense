@@ -159,7 +159,9 @@ export type PostbackAction =
   | { action: 'debt_update_balance'; id: string }
   | { action: 'debt_add_charge'; id: string }
   | { action: 'reminder_paid'; id: string }
-  | { action: 'reminder_snooze'; id: string; days: number }
+  | { action: 'reminder_snooze_pick_date'; id: string }
+  | { action: 'reminder_postpone_next_month'; id: string }
+  | { action: 'reminder_confirm_fixed'; amount: number }
   | { action: 'slip_select_date'; date: 'slip' | 'today' }
   | { action: 'slip_confirm_type'; type: 'income' | 'expense' }
   | { action: 'slip_reject_type' }

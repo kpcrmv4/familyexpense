@@ -111,6 +111,16 @@ async function handleStatefulMessage(
       await recurringFlow.handleDebtAddChargeInput(replyToken, lineUserId, text);
       break;
 
+    // === Fixed Amount Paid (editable) ===
+    case 'recurring_fixed_paid':
+      await recurringFlow.handleFixedPaidInput(replyToken, lineUserId, text);
+      break;
+
+    // === Snooze Date Input ===
+    case 'reminder_snooze_date':
+      await recurringFlow.handleSnoozeDateInput(replyToken, lineUserId, text);
+      break;
+
     default:
       // If user types text while in a flow that expects postback, clear state
       await stateService.clearState(lineUserId);
