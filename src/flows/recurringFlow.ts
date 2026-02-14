@@ -5,6 +5,7 @@ import * as transactionService from '../services/transactionService';
 import * as categoryService from '../services/categoryService';
 import * as userService from '../services/userService';
 import * as recurringFlex from '../templates/recurringFlex';
+import { calculateInstallmentInfo } from '../templates/recurringFlex';
 import { errorMessage } from '../templates/summaryFlex';
 import { getGenderTheme } from '../utils/themeColors';
 import { todayDateString, addDaysToToday } from '../utils/formatters';
@@ -194,17 +195,23 @@ export async function handleEndMonthInput(replyToken: string, lineUserId: string
   if (!match) {
     await lineClient.replyMessage({
       replyToken,
-      messages: [{ type: 'text', text: 'รูปแบบไม่ถูกต้อง กรุณาพิมพ์ เดือน/ปี เช่น 12/2027' }],
+      messages: [{ type: 'text', text: 'รูปแบบไม่ถูกต้อง กรุณาพิมพ์ เดือน/ปี เช่น 12/2027 หรือ 12/2570' }],
     });
     return;
   }
 
   const month = parseInt(match[1]);
-  const year = parseInt(match[2]);
+  let year = parseInt(match[2]);
+
+  // Support both พ.ศ. (BE) and ค.ศ. (CE) — if year >= 2500, treat as พ.ศ.
+  if (year >= 2500) {
+    year -= 543;
+  }
+
   if (month < 1 || month > 12 || year < 2024 || year > 2099) {
     await lineClient.replyMessage({
       replyToken,
-      messages: [{ type: 'text', text: 'เดือน 1-12 ปี 2024-2099 กรุณาพิมพ์ใหม่' }],
+      messages: [{ type: 'text', text: 'เดือน 1-12 ปี 2024-2099 (หรือ พ.ศ. 2567-2642)\nกรุณาพิมพ์ใหม่' }],
     });
     return;
   }
@@ -370,7 +377,7 @@ export async function handleVariablePaidInput(
 async function recordPaidAndReply(
   replyToken: string,
   user: { id: string },
-  item: { id: string; name: string; amount: number; is_variable: boolean },
+  item: { id: string; name: string; amount: number; is_variable: boolean; end_month?: string | null; created_at?: string },
   paidAmount: number,
   theme: any
 ): Promise<void> {
@@ -401,10 +408,17 @@ async function recordPaidAndReply(
     });
   }
 
+  // Calculate installment info for items with end date
+  let installment: { current: number; total: number } | null = null;
+  if (item.end_month && item.created_at) {
+    const createdYM = item.created_at.substring(0, 7); // "YYYY-MM" from ISO date
+    installment = calculateInstallmentInfo(createdYM, item.end_month);
+  }
+
   const { reminderPaidMessage } = await import('../templates/reminderFlex');
   await lineClient.replyMessage({
     replyToken,
-    messages: [reminderPaidMessage(item.name, paidAmount, theme)],
+    messages: [reminderPaidMessage(item.name, paidAmount, theme, installment)],
   });
 }
 

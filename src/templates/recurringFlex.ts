@@ -15,6 +15,54 @@ function amountTypeLabel(isVariable: boolean): string {
   return isVariable ? '📊 ไม่เท่ากันทุกเดือน' : '💵 คงที่ทุกเดือน';
 }
 
+function getCurrentYM(): string {
+  const s = new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' });
+  const bkk = new Date(s);
+  return `${bkk.getFullYear()}-${String(bkk.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export function calculateInstallmentInfo(
+  createdYM: string,
+  endMonth: string
+): { current: number; total: number } {
+  const currentYM = getCurrentYM();
+  const [sy, sm] = createdYM.split('-').map(Number);
+  const [ey, em] = endMonth.split('-').map(Number);
+  const [cy, cm] = currentYM.split('-').map(Number);
+
+  const total = (ey - sy) * 12 + (em - sm) + 1;
+  const current = Math.min((cy - sy) * 12 + (cm - sm) + 1, total);
+
+  return { current: Math.max(current, 1), total: Math.max(total, 1) };
+}
+
+export function getMotivationalMessage(current: number, total: number): string {
+  const remaining = total - current;
+
+  if (current === 1 && total > 1) {
+    const msgs = [
+      `เริ่มงวดแรกแล้ว! อีก ${remaining} งวดก็ครบ สู้ๆ นะ! 💪`,
+      `ก้าวแรกเริ่มแล้ว! เหลืออีกแค่ ${remaining} งวด ไปด้วยกัน! ✨`,
+      `เส้นทาง ${total} งวดเริ่มต้นแล้ว ค่อยๆ ไปทีละก้าว! 🚀`,
+    ];
+    return msgs[Math.floor(Math.random() * msgs.length)];
+  }
+
+  if (current === total) {
+    return 'งวดสุดท้ายแล้ว! ยินดีด้วย ผ่านมาได้สำเร็จ! 🎊';
+  }
+
+  if (remaining <= 3) {
+    return `เหลืออีกแค่ ${remaining} งวด ใกล้ถึงเส้นชัยแล้ว! 🏆`;
+  }
+
+  if (current / total >= 0.5) {
+    return `ผ่านมาเกินครึ่งแล้ว เหลือ ${remaining} งวด สู้ต่อไป! 💪`;
+  }
+
+  return `ผ่านมา ${current} งวดแล้ว เหลืออีก ${remaining} งวด ค่อยๆ ไป เดี๋ยวก็หมด! 🎯`;
+}
+
 // ===== Menu =====
 
 export function recurringMenuMessage(items: RecurringExpense[], theme: ThemeColors): any {
@@ -304,7 +352,7 @@ export function recurringAskEndMonthMessage(name: string, theme: ThemeColors): a
         createSpacer('sm'),
         {
           type: 'text',
-          text: 'ถ้ามีวันสิ้นสุด ให้พิมพ์ เดือน/ปี\nเช่น 12/2027',
+          text: 'ถ้ามีวันสิ้นสุด ให้พิมพ์ เดือน/ปี\nเช่น 12/2027 หรือ 12/2570',
           size: 'xs',
           color: '#6B7280',
           align: 'center',
@@ -326,7 +374,7 @@ export function recurringAskEndMonthMessage(name: string, theme: ThemeColors): a
         createSpacer('xs'),
         {
           type: 'text',
-          text: 'หรือพิมพ์เดือนสิ้นสุด เช่น 12/2027',
+          text: 'หรือพิมพ์เดือนสิ้นสุด เช่น 12/2027 หรือ 12/2570',
           size: 'xxs',
           color: '#9CA3AF',
           align: 'center',
@@ -413,6 +461,16 @@ export function recurringSuccessMessage(data: Record<string, any>, theme: ThemeC
   const amount = data.amount || 0;
   const endMonth = data.end_month || null;
 
+  // Calculate installment info for items with end date
+  let installmentText: string | null = null;
+  let motivationalText: string | null = null;
+  if (endMonth) {
+    const currentYM = getCurrentYM();
+    const { current, total } = calculateInstallmentInfo(currentYM, endMonth);
+    installmentText = `งวดที่ ${current}/${total}`;
+    motivationalText = getMotivationalMessage(current, total);
+  }
+
   return createFlexMessage('เพิ่มสำเร็จ!', createBubble({
     header: createHeader('เพิ่มสำเร็จ! ✅', ''),
     body: {
@@ -437,6 +495,14 @@ export function recurringSuccessMessage(data: Record<string, any>, theme: ThemeC
           color: '#EF4444',
           align: 'center',
         },
+        ...(installmentText ? [{
+          type: 'text' as const,
+          text: installmentText,
+          size: 'sm' as const,
+          weight: 'bold' as const,
+          color: '#F59E0B',
+          align: 'center' as const,
+        }] : []),
         {
           type: 'text',
           text: `แจ้งเตือนทุกวันที่ ${data.due_day}${endMonth ? ` · ถึง ${formatEndMonth(endMonth)}` : ''}`,
@@ -445,6 +511,26 @@ export function recurringSuccessMessage(data: Record<string, any>, theme: ThemeC
           align: 'center',
           wrap: true,
         },
+        ...(motivationalText ? [
+          createSpacer('sm'),
+          {
+            type: 'box' as const,
+            layout: 'vertical' as const,
+            contents: [
+              {
+                type: 'text' as const,
+                text: `🤖 ${motivationalText}`,
+                size: 'xs' as const,
+                color: '#4B5563',
+                align: 'center' as const,
+                wrap: true,
+              },
+            ],
+            backgroundColor: '#F0F9FF',
+            cornerRadius: 'md',
+            paddingAll: 'md',
+          },
+        ] : []),
       ],
       paddingAll: 'xl',
       spacing: 'sm',
