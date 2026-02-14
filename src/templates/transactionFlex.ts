@@ -1,6 +1,6 @@
 import { Category, ThemeColors, TransactionDraft } from '../types';
 import { createFlexMessage, createBubble, createHeader, createButton, createTextRow, createSeparator, createSpacer } from './flexMessages';
-import { getGenderTheme, getTransactionColors } from '../utils/themeColors';
+import { getTransactionColors } from '../utils/themeColors';
 import { formatCurrency, formatThaiDate } from '../utils/formatters';
 
 export function selectTypeMessage(draft: TransactionDraft, theme: ThemeColors): any {
@@ -482,6 +482,136 @@ export function slipFlipTypeMessage(
           JSON.stringify({ action: 'slip_confirm_type', type: flippedType }),
           'primary',
           typeColor
+        ),
+        createButton(
+          '❌ ยกเลิก',
+          JSON.stringify({ action: 'cancel' }),
+          'secondary'
+        ),
+      ],
+      paddingAll: 'lg',
+      spacing: 'sm',
+    },
+    theme,
+  }));
+}
+
+// ===== Slip: Auto-summary (sender matched + recipient has known category) =====
+
+export function slipAutoSummaryMessage(
+  draft: TransactionDraft,
+  sender: string,
+  recipient: string,
+  bank: string,
+  theme: ThemeColors
+): any {
+  const txColors = getTransactionColors(draft.type!);
+  const typeLabel = draft.type === 'income' ? 'รายรับ' : 'รายจ่าย';
+
+  return createFlexMessage('สรุปรายการจากสลิป', createBubble({
+    header: createHeader('สรุปรายการจากสลิป ⚡', ''),
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'text',
+          text: `฿${formatCurrency(draft.amount)}`,
+          size: 'xxl',
+          weight: 'bold',
+          color: txColors.highlight,
+          align: 'center',
+        },
+        {
+          type: 'text',
+          text: draft.description,
+          size: 'md',
+          color: '#1A1A2E',
+          align: 'center',
+          weight: 'bold',
+        },
+        createSpacer('md'),
+        createTextRow('ประเภท', `${txColors.icon} ${typeLabel}`, txColors.highlight),
+        createSpacer('xs'),
+        createTextRow('หมวดหมู่', draft.category_name || 'ไม่ระบุ'),
+        createSpacer('xs'),
+        createTextRow('ผู้โอน', sender),
+        createSpacer('xs'),
+        createTextRow('ผู้รับ', recipient),
+        createSpacer('xs'),
+        createTextRow('ธนาคาร', bank),
+        ...(draft.transaction_date ? [
+          createSpacer('xs'),
+          createTextRow('วันที่', formatThaiDate(draft.transaction_date)),
+        ] : []),
+        createSpacer('md'),
+        {
+          type: 'text',
+          text: '🤖 ระบบจดจำผู้รับและหมวดหมู่อัตโนมัติ',
+          size: 'xxs',
+          color: '#9CA3AF',
+          align: 'center',
+        },
+      ],
+      paddingAll: 'xl',
+    },
+    footer: {
+      type: 'box',
+      layout: 'horizontal',
+      contents: [
+        createButton(
+          '✏️ แก้ไข',
+          JSON.stringify({ action: 'slip_auto_edit' }),
+          'secondary'
+        ),
+        createButton(
+          '✅ ยืนยัน',
+          JSON.stringify({ action: 'slip_auto_confirm' }),
+          'primary',
+          txColors.highlight
+        ),
+      ],
+      paddingAll: 'lg',
+      spacing: 'sm',
+    },
+    theme,
+  }));
+}
+
+// ===== Slip: Edit options (change type or category) =====
+
+export function slipAutoEditMessage(theme: ThemeColors): any {
+  return createFlexMessage('แก้ไขรายการ', createBubble({
+    header: createHeader('ต้องการแก้ไขอะไร?', '', '✏️'),
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        {
+          type: 'text',
+          text: 'เลือกสิ่งที่ต้องการแก้ไข',
+          size: 'sm',
+          color: '#6B7280',
+          align: 'center',
+        },
+      ],
+      paddingAll: 'xl',
+    },
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        createButton(
+          '🔄 เปลี่ยนประเภท (รายรับ/รายจ่าย)',
+          JSON.stringify({ action: 'slip_auto_edit_type' }),
+          'primary',
+          theme.primary
+        ),
+        createButton(
+          '📁 เปลี่ยนหมวดหมู่',
+          JSON.stringify({ action: 'slip_auto_edit_category' }),
+          'primary',
+          theme.accent
         ),
         createButton(
           '❌ ยกเลิก',

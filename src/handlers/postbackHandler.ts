@@ -151,6 +151,31 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       }
       break;
 
+    // === Slip Auto-Summary ===
+    case 'slip_auto_confirm':
+      if (currentState?.state === 'slip_auto_confirm') {
+        await transactionFlow.handleSlipAutoConfirm(replyToken, lineUserId, currentState.data);
+      }
+      break;
+
+    case 'slip_auto_edit':
+      if (currentState?.state === 'slip_auto_confirm') {
+        await transactionFlow.handleSlipAutoEdit(replyToken, lineUserId, currentState.data);
+      }
+      break;
+
+    case 'slip_auto_edit_type':
+      if (currentState?.state === 'slip_auto_confirm') {
+        await transactionFlow.handleSlipAutoEditType(replyToken, lineUserId, currentState.data);
+      }
+      break;
+
+    case 'slip_auto_edit_category':
+      if (currentState?.state === 'slip_auto_confirm') {
+        await transactionFlow.handleSlipAutoEditCategory(replyToken, lineUserId, currentState.data);
+      }
+      break;
+
     // === Reminder ===
     case 'reminder_paid':
       await recurringFlow.handleReminderPaid(replyToken, lineUserId, action.id);

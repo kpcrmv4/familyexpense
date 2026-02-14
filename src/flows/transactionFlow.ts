@@ -5,6 +5,7 @@ import * as transactionService from '../services/transactionService';
 import * as userService from '../services/userService';
 import * as geminiService from '../services/geminiService';
 import * as userAccountService from '../services/userAccountService';
+import * as recipientCategoryService from '../services/recipientCategoryService';
 import * as transactionFlex from '../templates/transactionFlex';
 import { errorMessage } from '../templates/summaryFlex';
 import { getGenderTheme } from '../utils/themeColors';
@@ -167,6 +168,34 @@ async function checkAccountAndProceed(
 
   if (senderMatch) {
     // Sender is user's account → expense (user sent money)
+    // Check if recipient has a known category → auto-summary
+    const knownRecipient = await recipientCategoryService.findByRecipient(user.id, slipContext.recipient);
+
+    if (knownRecipient) {
+      // Auto-fill everything: type=expense, category from known recipient
+      draft.type = 'expense';
+      draft.category_id = knownRecipient.category_id;
+      draft.category_name = knownRecipient.category_name;
+
+      await stateService.setState(lineUserId, 'slip_auto_confirm', {
+        draft,
+        userId: user.id,
+        slipContext,
+      });
+      await lineClient.replyMessage({
+        replyToken,
+        messages: [transactionFlex.slipAutoSummaryMessage(
+          draft,
+          slipContext.sender,
+          slipContext.recipient,
+          slipContext.bank,
+          theme,
+        )],
+      });
+      return;
+    }
+
+    // No known category for recipient → normal suggest type flow
     const suggestedType = 'expense' as const;
     await stateService.setState(lineUserId, 'slip_confirm_type', {
       draft,
@@ -249,7 +278,7 @@ export async function handleSlipConfirmType(
 
   // Go to category selection
   const categories = await categoryService.getCategoriesByType(userId, type);
-  await stateService.setState(lineUserId, 'select_category', { draft, userId });
+  await stateService.setState(lineUserId, 'select_category', { draft, userId, slipContext });
   await lineClient.replyMessage({
     replyToken,
     messages: [transactionFlex.selectCategoryMessage(draft, categories, theme)],
@@ -306,7 +335,7 @@ export async function handleTypeSelect(
   }
 
   const categories = await categoryService.getCategoriesByType(userId, type);
-  await stateService.setState(lineUserId, 'select_category', { draft, userId });
+  await stateService.setState(lineUserId, 'select_category', { draft, userId, slipContext });
   await lineClient.replyMessage({
     replyToken,
     messages: [transactionFlex.selectCategoryMessage(draft, categories, theme)],
@@ -324,6 +353,7 @@ export async function handleCategorySelect(
 ): Promise<void> {
   const draft = stateData.draft as TransactionDraft;
   const userId = stateData.userId as string;
+  const slipContext = stateData.slipContext as SlipContext | undefined;
   draft.category_id = categoryId;
   draft.category_name = categoryName;
 
@@ -331,7 +361,7 @@ export async function handleCategorySelect(
   if (!user) return;
   const theme = getGenderTheme(user.gender);
 
-  await stateService.setState(lineUserId, 'confirm_transaction', { draft, userId });
+  await stateService.setState(lineUserId, 'confirm_transaction', { draft, userId, slipContext });
   await lineClient.replyMessage({
     replyToken,
     messages: [transactionFlex.confirmTransactionMessage(draft, theme)],
@@ -347,6 +377,7 @@ export async function handleConfirm(
 ): Promise<void> {
   const draft = stateData.draft as TransactionDraft;
   const userId = stateData.userId as string;
+  const slipContext = stateData.slipContext as SlipContext | undefined;
 
   const user = await userService.findUserByLineId(lineUserId);
   if (!user) return;
@@ -362,6 +393,20 @@ export async function handleConfirm(
       source: draft.source,
       transaction_date: draft.transaction_date,
     });
+
+    // Save recipient → category mapping for future auto-summary (slip only)
+    if (slipContext && draft.source === 'slip' && draft.type === 'expense') {
+      try {
+        await recipientCategoryService.saveRecipientCategory(
+          userId,
+          slipContext.recipient,
+          draft.category_id!,
+          draft.category_name!
+        );
+      } catch (e) {
+        console.error('Save recipient category error:', e);
+      }
+    }
 
     await stateService.clearState(lineUserId);
 
@@ -384,6 +429,148 @@ export async function handleConfirm(
       messages: [errorMessage('เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่')],
     });
   }
+}
+
+// ===== Slip Auto-Summary: Confirm =====
+
+export async function handleSlipAutoConfirm(
+  replyToken: string,
+  lineUserId: string,
+  stateData: Record<string, any>
+): Promise<void> {
+  const draft = stateData.draft as TransactionDraft;
+  const userId = stateData.userId as string;
+  const slipContext = stateData.slipContext as SlipContext;
+
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+  const theme = getGenderTheme(user.gender);
+
+  try {
+    await transactionService.createTransaction({
+      user_id: userId,
+      category_id: draft.category_id!,
+      type: draft.type!,
+      amount: draft.amount,
+      description: draft.description,
+      source: draft.source,
+      transaction_date: draft.transaction_date,
+    });
+
+    // Auto-save account name
+    await autoSaveAccountName(userId, draft.type!, slipContext);
+
+    // Update recipient → category mapping (increment usage count)
+    await recipientCategoryService.saveRecipientCategory(
+      userId,
+      slipContext.recipient,
+      draft.category_id!,
+      draft.category_name!
+    );
+
+    await stateService.clearState(lineUserId);
+
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [
+        transactionFlex.transactionSuccessMessage(
+          draft.description,
+          draft.amount,
+          draft.type!,
+          draft.category_name!,
+          theme
+        ),
+      ],
+    });
+  } catch (error) {
+    console.error('Transaction creation error:', error);
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [errorMessage('เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่')],
+    });
+  }
+}
+
+// ===== Slip Auto-Summary: Edit =====
+
+export async function handleSlipAutoEdit(
+  replyToken: string,
+  lineUserId: string,
+  stateData: Record<string, any>
+): Promise<void> {
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+  const theme = getGenderTheme(user.gender);
+
+  // Keep state as slip_auto_confirm so edit sub-actions can access draft
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [transactionFlex.slipAutoEditMessage(theme)],
+  });
+}
+
+// ===== Slip Auto-Summary: Edit Type (switch to type selection) =====
+
+export async function handleSlipAutoEditType(
+  replyToken: string,
+  lineUserId: string,
+  stateData: Record<string, any>
+): Promise<void> {
+  const draft = stateData.draft as TransactionDraft;
+  const userId = stateData.userId as string;
+  const slipContext = stateData.slipContext as SlipContext;
+
+  // Clear pre-filled type and category
+  delete draft.type;
+  delete draft.category_id;
+  delete draft.category_name;
+
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+  const theme = getGenderTheme(user.gender);
+
+  // Go back to type selection with slip info
+  await stateService.setState(lineUserId, 'select_type', {
+    draft,
+    userId,
+    slipContext,
+  });
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [transactionFlex.slipParsedMessage(
+      draft.amount,
+      slipContext.sender,
+      slipContext.recipient,
+      slipContext.bank,
+      theme,
+    )],
+  });
+}
+
+// ===== Slip Auto-Summary: Edit Category (keep type, re-select category) =====
+
+export async function handleSlipAutoEditCategory(
+  replyToken: string,
+  lineUserId: string,
+  stateData: Record<string, any>
+): Promise<void> {
+  const draft = stateData.draft as TransactionDraft;
+  const userId = stateData.userId as string;
+
+  // Clear pre-filled category
+  delete draft.category_id;
+  delete draft.category_name;
+
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+  const theme = getGenderTheme(user.gender);
+
+  const categories = await categoryService.getCategoriesByType(userId, draft.type!);
+  await stateService.setState(lineUserId, 'select_category', { draft, userId });
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [transactionFlex.selectCategoryMessage(draft, categories, theme)],
+  });
 }
 
 // ===== Helper: Auto-save account name =====
