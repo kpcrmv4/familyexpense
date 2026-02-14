@@ -163,6 +163,10 @@ export type PostbackAction =
   | { action: 'slip_select_date'; date: 'slip' | 'today' }
   | { action: 'slip_confirm_type'; type: 'income' | 'expense' }
   | { action: 'slip_reject_type' }
+  | { action: 'slip_auto_confirm' }
+  | { action: 'slip_auto_edit' }
+  | { action: 'slip_auto_edit_type' }
+  | { action: 'slip_auto_edit_category' }
   | { action: 'view_summary' }
   | { action: 'view_summary_month'; year: number; month: number }
   | { action: 'ai_advice' }
