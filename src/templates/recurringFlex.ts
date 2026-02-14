@@ -352,7 +352,7 @@ export function recurringAskEndMonthMessage(name: string, theme: ThemeColors): a
         createSpacer('sm'),
         {
           type: 'text',
-          text: 'ถ้ามีวันสิ้นสุด ให้พิมพ์ เดือน/ปี\nเช่น 12/2027',
+          text: 'ถ้ามีวันสิ้นสุด ให้พิมพ์ เดือน/ปี\nเช่น 12/2027 หรือ 12/2570',
           size: 'xs',
           color: '#6B7280',
           align: 'center',
@@ -374,7 +374,7 @@ export function recurringAskEndMonthMessage(name: string, theme: ThemeColors): a
         createSpacer('xs'),
         {
           type: 'text',
-          text: 'หรือพิมพ์เดือนสิ้นสุด เช่น 12/2027',
+          text: 'หรือพิมพ์เดือนสิ้นสุด เช่น 12/2027 หรือ 12/2570',
           size: 'xxs',
           color: '#9CA3AF',
           align: 'center',

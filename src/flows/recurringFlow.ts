@@ -195,17 +195,23 @@ export async function handleEndMonthInput(replyToken: string, lineUserId: string
   if (!match) {
     await lineClient.replyMessage({
       replyToken,
-      messages: [{ type: 'text', text: 'รูปแบบไม่ถูกต้อง กรุณาพิมพ์ เดือน/ปี เช่น 12/2027' }],
+      messages: [{ type: 'text', text: 'รูปแบบไม่ถูกต้อง กรุณาพิมพ์ เดือน/ปี เช่น 12/2027 หรือ 12/2570' }],
     });
     return;
   }
 
   const month = parseInt(match[1]);
-  const year = parseInt(match[2]);
+  let year = parseInt(match[2]);
+
+  // Support both พ.ศ. (BE) and ค.ศ. (CE) — if year >= 2500, treat as พ.ศ.
+  if (year >= 2500) {
+    year -= 543;
+  }
+
   if (month < 1 || month > 12 || year < 2024 || year > 2099) {
     await lineClient.replyMessage({
       replyToken,
-      messages: [{ type: 'text', text: 'เดือน 1-12 ปี 2024-2099 กรุณาพิมพ์ใหม่' }],
+      messages: [{ type: 'text', text: 'เดือน 1-12 ปี 2024-2099 (หรือ พ.ศ. 2567-2642)\nกรุณาพิมพ์ใหม่' }],
     });
     return;
   }
