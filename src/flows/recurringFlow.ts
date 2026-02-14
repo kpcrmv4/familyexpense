@@ -8,7 +8,7 @@ import * as recurringFlex from '../templates/recurringFlex';
 import { calculateInstallmentInfo } from '../templates/recurringFlex';
 import { errorMessage } from '../templates/summaryFlex';
 import { getGenderTheme } from '../utils/themeColors';
-import { todayDateString, addDaysToToday } from '../utils/formatters';
+import { todayDateString, formatThaiDate } from '../utils/formatters';
 
 // ===== Menu =====
 
@@ -369,8 +369,18 @@ export async function handleReminderPaid(replyToken: string, lineUserId: string,
       messages: [reminderAskAmountMessage(item.name, Number(item.amount), theme)],
     });
   } else {
-    // Fixed amount → record immediately
-    await recordPaidAndReply(replyToken, user, item, Number(item.amount), theme);
+    // Fixed amount → ask for confirmation/edit of amount
+    await stateService.setState(lineUserId, 'recurring_fixed_paid', {
+      recurringId: item.id,
+      recurringName: item.name,
+      fixedAmount: Number(item.amount),
+    });
+
+    const { reminderAskAmountMessage } = await import('../templates/reminderFlex');
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [reminderAskAmountMessage(item.name, Number(item.amount), theme, true)],
+    });
   }
 }
 
@@ -397,6 +407,53 @@ export async function handleVariablePaidInput(
   }
 
   const item = await recurringService.getRecurringById(state.data.recurringId);
+  if (!item) return;
+
+  await stateService.clearState(lineUserId);
+  await recordPaidAndReply(replyToken, user, item, amount, theme);
+}
+
+// Fixed paid: user typed a custom amount (edit) or confirmed via postback
+export async function handleFixedPaidInput(
+  replyToken: string,
+  lineUserId: string,
+  text: string
+): Promise<void> {
+  const state = await stateService.getState(lineUserId);
+  if (!state) return;
+
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+  const theme = getGenderTheme(user.gender);
+
+  const amount = parseFloat(text.replace(/,/g, ''));
+  if (isNaN(amount) || amount <= 0) {
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: 'กรุณาพิมพ์จำนวนเงินที่ถูกต้อง เช่น 850' }],
+    });
+    return;
+  }
+
+  const item = await recurringService.getRecurringById(state.data.recurringId);
+  if (!item) return;
+
+  await stateService.clearState(lineUserId);
+  await recordPaidAndReply(replyToken, user, item, amount, theme);
+}
+
+// Fixed paid: user confirmed default amount via postback button
+export async function handleFixedPaidConfirm(
+  replyToken: string,
+  lineUserId: string,
+  amount: number,
+  stateData: Record<string, any>
+): Promise<void> {
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+  const theme = getGenderTheme(user.gender);
+
+  const item = await recurringService.getRecurringById(stateData.recurringId);
   if (!item) return;
 
   await stateService.clearState(lineUserId);
@@ -655,13 +712,12 @@ export async function handleDebtAddChargeInput(replyToken: string, lineUserId: s
   });
 }
 
-// ===== Reminder: Snooze =====
+// ===== Reminder: Snooze - Pick specific date =====
 
-export async function handleReminderSnooze(
+export async function handleReminderSnoozePickDate(
   replyToken: string,
   lineUserId: string,
-  recurringId: string,
-  days: number
+  recurringId: string
 ): Promise<void> {
   const user = await userService.findUserByLineId(lineUserId);
   if (!user) return;
@@ -670,15 +726,97 @@ export async function handleReminderSnooze(
   const item = await recurringService.getRecurringById(recurringId);
   if (!item) return;
 
-  const snoozeDateStr = addDaysToToday(days);
+  await stateService.setState(lineUserId, 'reminder_snooze_date', {
+    recurringId: item.id,
+    recurringName: item.name,
+    dueDay: item.due_day,
+  });
+
+  const { reminderAskSnoozeDateMessage } = await import('../templates/reminderFlex');
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [reminderAskSnoozeDateMessage(item.name, item.due_day, theme)],
+  });
+}
+
+// Snooze: user typed a specific day within this month
+export async function handleSnoozeDateInput(
+  replyToken: string,
+  lineUserId: string,
+  text: string
+): Promise<void> {
+  const state = await stateService.getState(lineUserId);
+  if (!state) return;
+
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+  const theme = getGenderTheme(user.gender);
+
+  const day = parseInt(text.trim());
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+
+  if (isNaN(day) || day < now.getDate() || day > lastDay) {
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: `กรุณาพิมพ์วันที่ ${now.getDate()}-${lastDay} ในเดือนนี้` }],
+    });
+    return;
+  }
+
+  const snoozeDateStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const thaiDate = formatThaiDate(snoozeDateStr);
+
+  await recurringService.updateRecurring(state.data.recurringId, {
+    snoozed_until: snoozeDateStr,
+  });
+
+  await stateService.clearState(lineUserId);
+
+  const { reminderSnoozedMessage } = await import('../templates/reminderFlex');
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [reminderSnoozedMessage(state.data.recurringName, thaiDate, theme)],
+  });
+}
+
+// ===== Reminder: Postpone to Next Month =====
+
+export async function handleReminderPostponeNextMonth(
+  replyToken: string,
+  lineUserId: string,
+  recurringId: string
+): Promise<void> {
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+
+  const theme = getGenderTheme(user.gender);
+  const item = await recurringService.getRecurringById(recurringId);
+  if (!item) return;
+
+  // Calculate next month's due date
+  const now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
+  let nextMonth = now.getMonth() + 2; // +1 for 0-indexed, +1 for next month
+  let nextYear = now.getFullYear();
+  if (nextMonth > 12) {
+    nextMonth = 1;
+    nextYear += 1;
+  }
+
+  // Clamp due_day to last day of next month
+  const lastDayNextMonth = new Date(nextYear, nextMonth, 0).getDate();
+  const clampedDay = Math.min(item.due_day, lastDayNextMonth);
+
+  const snoozeDateStr = `${nextYear}-${String(nextMonth).padStart(2, '0')}-${String(clampedDay).padStart(2, '0')}`;
+  const thaiDate = formatThaiDate(snoozeDateStr);
 
   await recurringService.updateRecurring(recurringId, {
     snoozed_until: snoozeDateStr,
   });
 
-  const { reminderSnoozedMessage } = await import('../templates/reminderFlex');
+  const { reminderPostponedMessage } = await import('../templates/reminderFlex');
   await lineClient.replyMessage({
     replyToken,
-    messages: [reminderSnoozedMessage(item.name, days, theme)],
+    messages: [reminderPostponedMessage(item.name, thaiDate, theme)],
   });
 }

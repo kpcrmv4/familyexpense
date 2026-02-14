@@ -181,8 +181,18 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       await recurringFlow.handleReminderPaid(replyToken, lineUserId, action.id);
       break;
 
-    case 'reminder_snooze':
-      await recurringFlow.handleReminderSnooze(replyToken, lineUserId, action.id, action.days);
+    case 'reminder_snooze_pick_date':
+      await recurringFlow.handleReminderSnoozePickDate(replyToken, lineUserId, (action as any).id);
+      break;
+
+    case 'reminder_postpone_next_month':
+      await recurringFlow.handleReminderPostponeNextMonth(replyToken, lineUserId, (action as any).id);
+      break;
+
+    case 'reminder_confirm_fixed':
+      if (currentState?.state === 'recurring_fixed_paid') {
+        await recurringFlow.handleFixedPaidConfirm(replyToken, lineUserId, (action as any).amount, currentState.data);
+      }
       break;
 
     // === Recurring Timeline ===
