@@ -103,7 +103,7 @@ export function askGenderMessage(name: string): any {
       type: 'box',
       layout: 'vertical',
       contents: [
-        createButton('👨 ผู้ชาย', JSON.stringify({ action: 'register_gender', gender: 'male' }), 'primary', '#7CAED4'),
+        createButton('👨 ผู้ชาย', JSON.stringify({ action: 'register_gender', gender: 'male' }), 'primary', '#7EC8B8'),
         createButton('👩 ผู้หญิง', JSON.stringify({ action: 'register_gender', gender: 'female' }), 'primary', '#D4899E'),
         createButton('🌈 ไม่ระบุ', JSON.stringify({ action: 'register_gender', gender: 'other' }), 'secondary'),
       ],
@@ -116,7 +116,7 @@ export function askGenderMessage(name: string): any {
 
 export function registerSuccessMessage(name: string, gender: string): any {
   const genderTheme = gender === 'male'
-    ? { primary: '#7CAED4', emoji: '👨', label: 'ผู้ชาย' }
+    ? { primary: '#7EC8B8', emoji: '👨', label: 'ผู้ชาย' }
     : gender === 'female'
     ? { primary: '#D4899E', emoji: '👩', label: 'ผู้หญิง' }
     : { primary: '#9E8EC8', emoji: '🌈', label: 'ไม่ระบุ' };

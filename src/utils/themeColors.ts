@@ -2,9 +2,9 @@ import { ThemeColors, TransactionColors } from '../types';
 
 const GENDER_THEMES: Record<string, ThemeColors> = {
   male: {
-    primary: '#7CAED4',
-    secondary: '#EBF4FA',
-    accent: '#5A94BD',
+    primary: '#7EC8B8',
+    secondary: '#E8F8F2',
+    accent: '#5AAFA0',
     text: '#2D3748',
     subtext: '#718096',
   },
