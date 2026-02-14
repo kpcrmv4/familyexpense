@@ -108,6 +108,20 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       }
       break;
 
+    case 'recurring_amount_type_debt':
+      if (currentState?.state === 'recurring_add_amount_type') {
+        await recurringFlow.handleDebtTypeSelect(replyToken, lineUserId);
+      }
+      break;
+
+    case 'debt_update_balance':
+      await recurringFlow.handleDebtUpdateBalance(replyToken, lineUserId, (action as any).id);
+      break;
+
+    case 'debt_add_charge':
+      await recurringFlow.handleDebtAddCharge(replyToken, lineUserId, (action as any).id);
+      break;
+
     case 'recurring_end_month_none':
       if (currentState?.state === 'recurring_add_end_month') {
         await recurringFlow.handleEndMonthNone(replyToken, lineUserId);

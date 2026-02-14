@@ -68,6 +68,7 @@ export async function createRecurring(params: {
   due_day: number;
   is_variable?: boolean;
   end_month?: string | null;
+  total_debt?: number | null;
 }): Promise<RecurringExpense> {
   const { data, error } = await supabase
     .from('recurring_expenses')
@@ -78,6 +79,8 @@ export async function createRecurring(params: {
       due_day: params.due_day,
       is_variable: params.is_variable ?? false,
       end_month: params.end_month ?? null,
+      total_debt: params.total_debt ?? null,
+      total_paid: 0,
     })
     .select()
     .single();
@@ -87,7 +90,7 @@ export async function createRecurring(params: {
 
 export async function updateRecurring(
   id: string,
-  updates: Partial<Pick<RecurringExpense, 'name' | 'amount' | 'due_day' | 'is_active' | 'is_variable' | 'end_month' | 'last_paid_date' | 'snoozed_until'>>
+  updates: Partial<Pick<RecurringExpense, 'name' | 'amount' | 'due_day' | 'is_active' | 'is_variable' | 'end_month' | 'last_paid_date' | 'snoozed_until' | 'total_debt' | 'total_paid'>>
 ): Promise<RecurringExpense> {
   const { data, error } = await supabase
     .from('recurring_expenses')

@@ -48,6 +48,8 @@ export interface RecurringExpense {
   end_month: string | null; // format: 'YYYY-MM' or null
   last_paid_date: string | null;
   snoozed_until: string | null;
+  total_debt: number | null; // ยอดหนี้ทั้งหมด (null = recurring ปกติ)
+  total_paid: number; // ยอดจ่ายสะสม (ใช้กับหนี้)
   created_at: string;
 }
 
@@ -152,7 +154,10 @@ export type PostbackAction =
   | { action: 'recurring_delete'; id: string }
   | { action: 'recurring_confirm_delete'; id: string }
   | { action: 'recurring_amount_type'; is_variable: boolean }
+  | { action: 'recurring_amount_type_debt' }
   | { action: 'recurring_end_month_none' }
+  | { action: 'debt_update_balance'; id: string }
+  | { action: 'debt_add_charge'; id: string }
   | { action: 'reminder_paid'; id: string }
   | { action: 'reminder_snooze'; id: string; days: number }
   | { action: 'slip_select_date'; date: 'slip' | 'today' }
