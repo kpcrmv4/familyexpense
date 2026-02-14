@@ -86,6 +86,33 @@ export async function getAccumulatedBalance(
   return income - expense;
 }
 
+export async function getDailyBreakdown(
+  userId: string,
+  year: number,
+  month: number
+): Promise<{ day: number; income: number; expense: number }[]> {
+  const transactions = await getMonthlyTransactions(userId, year, month);
+  const daysInMonth = new Date(year, month, 0).getDate();
+
+  const dailyMap = new Map<number, { income: number; expense: number }>();
+  for (let d = 1; d <= daysInMonth; d++) {
+    dailyMap.set(d, { income: 0, expense: 0 });
+  }
+
+  for (const t of transactions) {
+    const day = parseInt(t.transaction_date.split('-')[2], 10);
+    const entry = dailyMap.get(day);
+    if (entry) {
+      if (t.type === 'income') entry.income += Number(t.amount);
+      else entry.expense += Number(t.amount);
+    }
+  }
+
+  return Array.from(dailyMap.entries())
+    .sort(([a], [b]) => a - b)
+    .map(([day, data]) => ({ day, ...data }));
+}
+
 export async function getCategorySummary(
   userId: string,
   year: number,
