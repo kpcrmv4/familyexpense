@@ -94,6 +94,23 @@ async function handleStatefulMessage(
       await recurringFlow.handleVariablePaidInput(replyToken, lineUserId, text);
       break;
 
+    // === Debt Flows ===
+    case 'recurring_add_total_debt':
+      await recurringFlow.handleTotalDebtInput(replyToken, lineUserId, text);
+      break;
+
+    case 'debt_pay':
+      await recurringFlow.handleDebtPayInput(replyToken, lineUserId, text);
+      break;
+
+    case 'debt_update_balance':
+      await recurringFlow.handleDebtUpdateBalanceInput(replyToken, lineUserId, text);
+      break;
+
+    case 'debt_add_charge':
+      await recurringFlow.handleDebtAddChargeInput(replyToken, lineUserId, text);
+      break;
+
     default:
       // If user types text while in a flow that expects postback, clear state
       await stateService.clearState(lineUserId);

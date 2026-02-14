@@ -183,40 +183,85 @@ function recurringTimelineBubble(
   const statusColor = (s: string) => s === 'paid' ? '#10B981' : s === 'overdue' ? '#EF4444' : '#F59E0B';
 
   const itemRows: any[] = items.length > 0
-    ? items.flatMap((item, i) => [
-        ...(i > 0 ? [createSpacer('xs')] : []),
-        {
-          type: 'box',
-          layout: 'horizontal',
-          contents: [
-            { type: 'text', text: statusIcon(item.status), size: 'sm', flex: 0 },
+    ? items.flatMap((item, i) => {
+        const isDebt = item.total_debt != null && Number(item.total_debt) > 0;
+
+        if (isDebt) {
+          const totalDebt = Number(item.total_debt);
+          const totalPaid = Number(item.total_paid || 0);
+          const remaining = Math.max(totalDebt - totalPaid, 0);
+          const paidPercent = Math.min(Math.round((totalPaid / totalDebt) * 100), 100);
+
+          return [
+            ...(i > 0 ? [createSpacer('xs')] : []),
             {
               type: 'box',
               layout: 'vertical',
               contents: [
-                { type: 'text', text: item.name, size: 'xs', weight: 'bold', color: '#1A1A2E' },
-                { type: 'text', text: `วันที่ ${item.due_day}`, size: 'xxs', color: '#9CA3AF' },
+                {
+                  type: 'box',
+                  layout: 'horizontal',
+                  contents: [
+                    { type: 'text', text: statusIcon(item.status), size: 'sm', flex: 0 },
+                    { type: 'text', text: `💳 ${item.name}`, size: 'xs', weight: 'bold', color: '#1A1A2E', flex: 1 },
+                    { type: 'text', text: `฿${formatCurrency(remaining)}`, size: 'xs', weight: 'bold', color: statusColor(item.status), align: 'end' },
+                  ],
+                  spacing: 'sm',
+                },
+                {
+                  type: 'box',
+                  layout: 'horizontal',
+                  contents: [
+                    ...(paidPercent > 0 ? [{ type: 'box' as const, layout: 'vertical' as const, contents: [] as any[], backgroundColor: '#10B981', height: '4px', flex: paidPercent || 1 }] : []),
+                    ...(100 - paidPercent > 0 ? [{ type: 'box' as const, layout: 'vertical' as const, contents: [] as any[], backgroundColor: '#E5E7EB', height: '4px', flex: (100 - paidPercent) || 1 }] : []),
+                  ],
+                  cornerRadius: 'md',
+                  margin: 'xs',
+                },
+                { type: 'text', text: `วันที่ ${item.due_day} · จ่ายแล้ว ${paidPercent}%`, size: 'xxs', color: '#9CA3AF', margin: 'xs' },
               ],
-              flex: 1,
+              backgroundColor: item.status === 'overdue' ? '#FEF2F2' : '#F9FAFB',
+              cornerRadius: 'md',
+              paddingAll: 'sm',
             },
-            {
-              type: 'text',
-              text: item.is_variable
-                ? (Number(item.amount) > 0 ? `~฿${formatCurrency(Number(item.amount))}` : 'ไม่ระบุ')
-                : `฿${formatCurrency(Number(item.amount))}`,
-              size: 'xs',
-              weight: 'bold',
-              color: statusColor(item.status),
-              align: 'end',
-              gravity: 'center',
-            },
-          ],
-          spacing: 'sm',
-          backgroundColor: item.status === 'overdue' ? '#FEF2F2' : '#F9FAFB',
-          cornerRadius: 'md',
-          paddingAll: 'sm',
-        },
-      ])
+          ];
+        }
+
+        return [
+          ...(i > 0 ? [createSpacer('xs')] : []),
+          {
+            type: 'box',
+            layout: 'horizontal',
+            contents: [
+              { type: 'text', text: statusIcon(item.status), size: 'sm', flex: 0 },
+              {
+                type: 'box',
+                layout: 'vertical',
+                contents: [
+                  { type: 'text', text: item.name, size: 'xs', weight: 'bold', color: '#1A1A2E' },
+                  { type: 'text', text: `วันที่ ${item.due_day}`, size: 'xxs', color: '#9CA3AF' },
+                ],
+                flex: 1,
+              },
+              {
+                type: 'text',
+                text: item.is_variable
+                  ? (Number(item.amount) > 0 ? `~฿${formatCurrency(Number(item.amount))}` : 'ไม่ระบุ')
+                  : `฿${formatCurrency(Number(item.amount))}`,
+                size: 'xs',
+                weight: 'bold',
+                color: statusColor(item.status),
+                align: 'end',
+                gravity: 'center',
+              },
+            ],
+            spacing: 'sm',
+            backgroundColor: item.status === 'overdue' ? '#FEF2F2' : '#F9FAFB',
+            cornerRadius: 'md',
+            paddingAll: 'sm',
+          },
+        ];
+      })
     : [{ type: 'text', text: 'ยังไม่มีค่าใช้จ่ายประจำเดือน', size: 'sm', color: '#9CA3AF', align: 'center' }];
 
   // Summary row

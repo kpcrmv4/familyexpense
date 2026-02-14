@@ -132,7 +132,7 @@ export async function handleAmountInput(replyToken: string, lineUserId: string, 
   });
 }
 
-// Step 4 → 5: Due day received, ask end month
+// Step 4 → 5: Due day received, ask end month (or confirm for debt)
 export async function handleDueDayInput(replyToken: string, lineUserId: string, text: string): Promise<void> {
   const state = await stateService.getState(lineUserId);
   if (!state) return;
@@ -146,6 +146,21 @@ export async function handleDueDayInput(replyToken: string, lineUserId: string, 
     await lineClient.replyMessage({
       replyToken,
       messages: [{ type: 'text', text: 'กรุณาพิมพ์วันที่ 1-31' }],
+    });
+    return;
+  }
+
+  // Debt type: skip end month, go straight to confirm
+  if (state.data.is_debt) {
+    await stateService.setState(lineUserId, 'recurring_confirm', {
+      ...state.data,
+      due_day: dueDay,
+      end_month: null,
+    });
+
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [recurringFlex.recurringConfirmMessage({ ...state.data, due_day: dueDay }, null, theme)],
     });
     return;
   }
@@ -257,6 +272,7 @@ export async function handleConfirmAdd(replyToken: string, lineUserId: string): 
       due_day: state.data.due_day,
       is_variable: state.data.is_variable || false,
       end_month: state.data.end_month || null,
+      total_debt: state.data.is_debt ? (state.data.total_debt || null) : null,
     });
 
     await stateService.clearState(lineUserId);
@@ -326,7 +342,21 @@ export async function handleReminderPaid(replyToken: string, lineUserId: string,
   const item = await recurringService.getRecurringById(recurringId);
   if (!item) return;
 
-  if (item.is_variable) {
+  const isDebt = item.total_debt != null && Number(item.total_debt) > 0;
+
+  if (isDebt) {
+    // Debt item → always ask for payment amount
+    await stateService.setState(lineUserId, 'debt_pay', {
+      recurringId: item.id,
+      recurringName: item.name,
+    });
+
+    const { reminderAskAmountMessage } = await import('../templates/reminderFlex');
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [reminderAskAmountMessage(item.name, Number(item.amount), theme)],
+    });
+  } else if (item.is_variable) {
     // Variable amount → ask user to input the actual amount
     await stateService.setState(lineUserId, 'recurring_variable_paid', {
       recurringId: item.id,
@@ -377,18 +407,25 @@ export async function handleVariablePaidInput(
 async function recordPaidAndReply(
   replyToken: string,
   user: { id: string },
-  item: { id: string; name: string; amount: number; is_variable: boolean; end_month?: string | null; created_at?: string },
+  item: { id: string; name: string; amount: number; is_variable: boolean; end_month?: string | null; created_at?: string; total_debt?: number | null; total_paid?: number },
   paidAmount: number,
   theme: any
 ): Promise<void> {
   const today = todayDateString();
+  const isDebt = item.total_debt != null && Number(item.total_debt) > 0;
 
   // Mark as paid & update amount for variable items
   const updates: any = {
     last_paid_date: today,
     snoozed_until: null,
   };
-  if (item.is_variable) {
+
+  if (isDebt) {
+    // Debt: accumulate total_paid and update latest payment amount
+    const newTotalPaid = Number(item.total_paid || 0) + paidAmount;
+    updates.total_paid = newTotalPaid;
+    updates.amount = paidAmount;
+  } else if (item.is_variable) {
     updates.amount = paidAmount; // update to latest amount
   }
   await recurringService.updateRecurring(item.id, updates);
@@ -408,6 +445,17 @@ async function recordPaidAndReply(
     });
   }
 
+  // Debt items: show debt progress bar
+  if (isDebt) {
+    const totalDebt = Number(item.total_debt);
+    const totalPaid = Number(item.total_paid || 0) + paidAmount;
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [recurringFlex.debtPaidMessage(item.name, paidAmount, totalDebt, totalPaid, theme)],
+    });
+    return;
+  }
+
   // Calculate installment info for items with end date
   let installment: { current: number; total: number } | null = null;
   if (item.end_month && item.created_at) {
@@ -419,6 +467,191 @@ async function recordPaidAndReply(
   await lineClient.replyMessage({
     replyToken,
     messages: [reminderPaidMessage(item.name, paidAmount, theme, installment)],
+  });
+}
+
+// ===== Debt: Amount Type Selected =====
+
+export async function handleDebtTypeSelect(replyToken: string, lineUserId: string): Promise<void> {
+  const state = await stateService.getState(lineUserId);
+  if (!state) return;
+
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+  const theme = getGenderTheme(user.gender);
+
+  await stateService.setState(lineUserId, 'recurring_add_total_debt', {
+    ...state.data,
+    is_debt: true,
+    is_variable: true, // debt payments are always variable
+  });
+
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [recurringFlex.debtAskTotalDebtMessage(state.data.name, theme)],
+  });
+}
+
+// ===== Debt: Total Debt Input =====
+
+export async function handleTotalDebtInput(replyToken: string, lineUserId: string, text: string): Promise<void> {
+  const state = await stateService.getState(lineUserId);
+  if (!state) return;
+
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+  const theme = getGenderTheme(user.gender);
+
+  const totalDebt = parseFloat(text.replace(/,/g, ''));
+  if (isNaN(totalDebt) || totalDebt <= 0) {
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: 'กรุณาพิมพ์ยอดหนี้ที่ถูกต้อง เช่น 30000' }],
+    });
+    return;
+  }
+
+  // Go to ask due day
+  await stateService.setState(lineUserId, 'recurring_add_due_day', {
+    ...state.data,
+    total_debt: totalDebt,
+    amount: 0, // no fixed monthly amount for debt
+  });
+
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [recurringFlex.recurringAskDueDayMessage(state.data.name, 0, true, theme)],
+  });
+}
+
+// ===== Debt: Payment Input =====
+
+export async function handleDebtPayInput(replyToken: string, lineUserId: string, text: string): Promise<void> {
+  const state = await stateService.getState(lineUserId);
+  if (!state) return;
+
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+  const theme = getGenderTheme(user.gender);
+
+  const amount = parseFloat(text.replace(/,/g, ''));
+  if (isNaN(amount) || amount <= 0) {
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: 'กรุณาพิมพ์จำนวนเงินที่ถูกต้อง เช่น 3000' }],
+    });
+    return;
+  }
+
+  const item = await recurringService.getRecurringById(state.data.recurringId);
+  if (!item) return;
+
+  await stateService.clearState(lineUserId);
+  await recordPaidAndReply(replyToken, user, item, amount, theme);
+}
+
+// ===== Debt: Start Update Balance =====
+
+export async function handleDebtUpdateBalance(replyToken: string, lineUserId: string, recurringId: string): Promise<void> {
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+
+  const theme = getGenderTheme(user.gender);
+  const item = await recurringService.getRecurringById(recurringId);
+  if (!item) return;
+
+  await stateService.setState(lineUserId, 'debt_update_balance', {
+    recurringId: item.id,
+    recurringName: item.name,
+  });
+
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [recurringFlex.debtAskUpdateBalanceMessage(item.name, Number(item.total_debt || 0), theme)],
+  });
+}
+
+// ===== Debt: Update Balance Input =====
+
+export async function handleDebtUpdateBalanceInput(replyToken: string, lineUserId: string, text: string): Promise<void> {
+  const state = await stateService.getState(lineUserId);
+  if (!state) return;
+
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+  const theme = getGenderTheme(user.gender);
+
+  const newDebt = parseFloat(text.replace(/,/g, ''));
+  if (isNaN(newDebt) || newDebt <= 0) {
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: 'กรุณาพิมพ์ยอดหนี้ที่ถูกต้อง เช่น 35000' }],
+    });
+    return;
+  }
+
+  const item = await recurringService.getRecurringById(state.data.recurringId);
+  if (!item) return;
+
+  await recurringService.updateRecurring(item.id, { total_debt: newDebt });
+  await stateService.clearState(lineUserId);
+
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [recurringFlex.debtBalanceUpdatedMessage(item.name, newDebt, Number(item.total_paid || 0), theme)],
+  });
+}
+
+// ===== Debt: Start Add Charge =====
+
+export async function handleDebtAddCharge(replyToken: string, lineUserId: string, recurringId: string): Promise<void> {
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+
+  const theme = getGenderTheme(user.gender);
+  const item = await recurringService.getRecurringById(recurringId);
+  if (!item) return;
+
+  await stateService.setState(lineUserId, 'debt_add_charge', {
+    recurringId: item.id,
+    recurringName: item.name,
+  });
+
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [recurringFlex.debtAskAddChargeMessage(item.name, Number(item.total_debt || 0), theme)],
+  });
+}
+
+// ===== Debt: Add Charge Input =====
+
+export async function handleDebtAddChargeInput(replyToken: string, lineUserId: string, text: string): Promise<void> {
+  const state = await stateService.getState(lineUserId);
+  if (!state) return;
+
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+  const theme = getGenderTheme(user.gender);
+
+  const chargeAmount = parseFloat(text.replace(/,/g, ''));
+  if (isNaN(chargeAmount) || chargeAmount <= 0) {
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [{ type: 'text', text: 'กรุณาพิมพ์จำนวนเงินที่ถูกต้อง เช่น 5000' }],
+    });
+    return;
+  }
+
+  const item = await recurringService.getRecurringById(state.data.recurringId);
+  if (!item) return;
+
+  const newTotalDebt = Number(item.total_debt || 0) + chargeAmount;
+  await recurringService.updateRecurring(item.id, { total_debt: newTotalDebt });
+  await stateService.clearState(lineUserId);
+
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [recurringFlex.debtBalanceUpdatedMessage(item.name, newTotalDebt, Number(item.total_paid || 0), theme, true)],
   });
 }
 
