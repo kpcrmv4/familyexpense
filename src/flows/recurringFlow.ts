@@ -7,6 +7,7 @@ import * as userService from '../services/userService';
 import * as recurringFlex from '../templates/recurringFlex';
 import { errorMessage } from '../templates/summaryFlex';
 import { getGenderTheme } from '../utils/themeColors';
+import { todayDateString, addDaysToToday } from '../utils/formatters';
 
 // ===== Menu =====
 
@@ -373,7 +374,7 @@ async function recordPaidAndReply(
   paidAmount: number,
   theme: any
 ): Promise<void> {
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayDateString();
 
   // Mark as paid & update amount for variable items
   const updates: any = {
@@ -422,9 +423,7 @@ export async function handleReminderSnooze(
   const item = await recurringService.getRecurringById(recurringId);
   if (!item) return;
 
-  const snoozeDate = new Date();
-  snoozeDate.setDate(snoozeDate.getDate() + days);
-  const snoozeDateStr = snoozeDate.toISOString().split('T')[0];
+  const snoozeDateStr = addDaysToToday(days);
 
   await recurringService.updateRecurring(recurringId, {
     snoozed_until: snoozeDateStr,

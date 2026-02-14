@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase';
 import { Transaction } from '../types';
+import { todayDateString } from '../utils/formatters';
 
 export async function createTransaction(params: {
   user_id: string;
@@ -14,7 +15,7 @@ export async function createTransaction(params: {
     .from('transactions')
     .insert({
       ...params,
-      transaction_date: params.transaction_date || new Date().toISOString().split('T')[0],
+      transaction_date: params.transaction_date || todayDateString(),
     })
     .select()
     .single();

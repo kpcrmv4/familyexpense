@@ -8,6 +8,7 @@ import * as userAccountService from '../services/userAccountService';
 import * as transactionFlex from '../templates/transactionFlex';
 import { errorMessage } from '../templates/summaryFlex';
 import { getGenderTheme } from '../utils/themeColors';
+import { todayDateString, normalizeSlipDate } from '../utils/formatters';
 import { TransactionDraft, ThemeColors } from '../types';
 
 // ===== Text Input Flow (unchanged) =====
@@ -91,17 +92,19 @@ export async function startFromSlip(
     source: 'slip',
   };
 
+  const normalizedSlipDate = normalizeSlipDate(ocrResult.date);
+
   const slipContext: SlipContext = {
     sender: ocrResult.sender || 'ไม่ระบุ',
     recipient: ocrResult.recipient || 'ไม่ระบุ',
     bank: ocrResult.bank || 'ไม่ระบุ',
-    slipDate: ocrResult.date,
+    slipDate: normalizedSlipDate,
   };
 
   // Step 1: Check date mismatch
-  const today = new Date().toISOString().split('T')[0];
+  const today = todayDateString();
 
-  if (ocrResult.date && ocrResult.date !== today) {
+  if (normalizedSlipDate && normalizedSlipDate !== today) {
     // Date differs → ask user which date to use
     await stateService.setState(lineUserId, 'slip_select_date', {
       draft,
@@ -140,7 +143,7 @@ export async function handleSlipDateSelect(
   if (dateChoice === 'slip') {
     draft.transaction_date = slipContext.slipDate;
   } else {
-    draft.transaction_date = new Date().toISOString().split('T')[0];
+    draft.transaction_date = todayDateString();
   }
 
   // Proceed to account name check

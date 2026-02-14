@@ -1,5 +1,6 @@
 import { supabase } from '../config/supabase';
-import { RecurringExpense } from '../types';
+import { RecurringExpense, RecurringWithStatus } from '../types';
+import { todayDateString } from '../utils/formatters';
 
 export async function getRecurringExpenses(userId: string): Promise<RecurringExpense[]> {
   const { data } = await supabase
@@ -9,6 +10,46 @@ export async function getRecurringExpenses(userId: string): Promise<RecurringExp
     .eq('is_active', true)
     .order('due_day');
   return data || [];
+}
+
+export async function getRecurringWithStatus(
+  userId: string,
+  year: number,
+  month: number
+): Promise<RecurringWithStatus[]> {
+  const { data } = await supabase
+    .from('recurring_expenses')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('is_active', true)
+    .order('due_day');
+
+  const items: RecurringExpense[] = data || [];
+
+  const currentYM = `${year}-${String(month).padStart(2, '0')}`;
+  const firstOfMonth = `${year}-${String(month).padStart(2, '0')}-01`;
+
+  const todayStr = todayDateString();
+  const todayDay = parseInt(todayStr.split('-')[2], 10);
+
+  return items
+    .filter((item) => {
+      if (!item.end_month) return true;
+      return item.end_month >= currentYM;
+    })
+    .map((item) => {
+      let status: 'paid' | 'overdue' | 'upcoming';
+
+      if (item.last_paid_date && item.last_paid_date >= firstOfMonth) {
+        status = 'paid';
+      } else if (item.due_day < todayDay) {
+        status = 'overdue';
+      } else {
+        status = 'upcoming';
+      }
+
+      return { ...item, status };
+    });
 }
 
 export async function getRecurringById(id: string): Promise<RecurringExpense | null> {

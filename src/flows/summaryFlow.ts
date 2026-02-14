@@ -20,12 +20,37 @@ export async function showSummary(
   const targetYear = year || now.getFullYear();
   const targetMonth = month || now.getMonth() + 1;
 
-  const summary = await transactionService.getMonthlySummary(user.id, targetYear, targetMonth);
-  const categoryBreakdown = await transactionService.getCategorySummary(user.id, targetYear, targetMonth);
+  const [summary, categoryBreakdown, recurringItems] = await Promise.all([
+    transactionService.getMonthlySummary(user.id, targetYear, targetMonth),
+    transactionService.getCategorySummary(user.id, targetYear, targetMonth),
+    recurringService.getRecurringWithStatus(user.id, targetYear, targetMonth),
+  ]);
 
   await lineClient.replyMessage({
     replyToken,
-    messages: [summaryFlex.monthlySummaryMessage(summary, categoryBreakdown, theme, targetYear, targetMonth)],
+    messages: [summaryFlex.monthlySummaryMessage(summary, categoryBreakdown, recurringItems, theme, targetYear, targetMonth)],
+  });
+}
+
+export async function showRecurringTimeline(
+  replyToken: string,
+  lineUserId: string,
+  year?: number,
+  month?: number
+): Promise<void> {
+  const user = await userService.findUserByLineId(lineUserId);
+  if (!user) return;
+
+  const theme = getGenderTheme(user.gender);
+  const now = new Date();
+  const targetYear = year || now.getFullYear();
+  const targetMonth = month || now.getMonth() + 1;
+
+  const recurringItems = await recurringService.getRecurringWithStatus(user.id, targetYear, targetMonth);
+
+  await lineClient.replyMessage({
+    replyToken,
+    messages: [summaryFlex.recurringTimelineMessage(recurringItems, theme, targetYear, targetMonth)],
   });
 }
 
@@ -66,7 +91,8 @@ export async function sendMonthlySummaryToAll(): Promise<void> {
       const summary = await transactionService.getMonthlySummary(user.id, year, month);
       const categoryBreakdown = await transactionService.getCategorySummary(user.id, year, month);
 
-      const message = summaryFlex.monthlySummaryMessage(summary, categoryBreakdown, theme, year, month);
+      const recurringItems = await recurringService.getRecurringWithStatus(user.id, year, month);
+      const message = summaryFlex.monthlySummaryMessage(summary, categoryBreakdown, recurringItems, theme, year, month);
 
       await lineClient.pushMessage({
         to: user.line_user_id,

@@ -5,8 +5,12 @@ import * as registrationFlow from '../flows/registrationFlow';
 import * as transactionFlow from '../flows/transactionFlow';
 import * as recurringFlow from '../flows/recurringFlow';
 import { pleaseRegisterMessage } from '../templates/registerFlex';
+import { mainMenuMessage } from '../templates/menuFlex';
 import { lineClient } from '../config/line';
+import { getGenderTheme } from '../utils/themeColors';
 import { REGISTRATION_KEYWORD } from '../utils/constants';
+
+const MENU_KEYWORDS = ['เมนู', 'menu'];
 
 export async function handleTextMessage(
   event: MessageEvent,
@@ -38,6 +42,16 @@ export async function handleTextMessage(
     await lineClient.replyMessage({
       replyToken,
       messages: [pleaseRegisterMessage()],
+    });
+    return;
+  }
+
+  // Menu keyword → send Flex menu (useful in group chats)
+  if (MENU_KEYWORDS.includes(normalizedText.toLowerCase())) {
+    const theme = getGenderTheme(user.gender);
+    await lineClient.replyMessage({
+      replyToken,
+      messages: [mainMenuMessage(theme)],
     });
     return;
   }

@@ -1,5 +1,6 @@
 import { geminiModel, geminiVisionModel } from '../config/gemini';
 import { GeminiNLUResult, GeminiOCRResult, GeminiRecommendation } from '../types';
+import { todayDateString } from '../utils/formatters';
 
 export async function parseExpenseText(text: string, categories: string[]): Promise<GeminiNLUResult> {
   const prompt = `คุณเป็นระบบวิเคราะห์ข้อความรายรับรายจ่ายภาษาไทย
@@ -60,7 +61,10 @@ export async function parseSlipImage(imageBuffer: Buffer): Promise<GeminiOCRResu
 - recipient คือชื่อผู้รับ มักอยู่ด้านล่างของสลิป (To/ไปยัง)
 - ถ้าอ่านชื่อไม่ได้ให้ใส่ "ไม่ระบุ"
 - ถ้าอ่านธนาคารไม่ได้ให้ใส่ "ไม่ระบุ"
-- date ให้ใช้รูปแบบ YYYY-MM-DD เท่านั้น`;
+- date ให้ใช้รูปแบบ YYYY-MM-DD (ค.ศ.) เท่านั้น
+- สำคัญมาก: สลิปธนาคารไทยแสดงปี พ.ศ. เช่น "13 ก.พ. 69" = 13 กุมภาพันธ์ พ.ศ. 2569 = ค.ศ. 2026-02-13
+  ถ้าเห็นปีเป็นเลข 2 หลัก (เช่น 69, 68) ให้ตีความว่าเป็น พ.ศ. 25xx แล้วแปลงเป็น ค.ศ. โดยลบ 543
+  ตัวอย่าง: 69 → พ.ศ. 2569 → ค.ศ. 2026, 68 → พ.ศ. 2568 → ค.ศ. 2025`;
 
   const imagePart = {
     inlineData: {
@@ -82,7 +86,7 @@ export async function parseSlipImage(imageBuffer: Buffer): Promise<GeminiOCRResu
       sender: 'ไม่ระบุ',
       recipient: 'ไม่ระบุ',
       bank: 'ไม่ระบุ',
-      date: new Date().toISOString().split('T')[0],
+      date: todayDateString(),
       confidence: 0,
     };
   }

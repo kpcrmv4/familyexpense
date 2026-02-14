@@ -51,6 +51,12 @@ export interface RecurringExpense {
   created_at: string;
 }
 
+export type RecurringStatus = 'paid' | 'overdue' | 'upcoming';
+
+export interface RecurringWithStatus extends RecurringExpense {
+  status: RecurringStatus;
+}
+
 export interface ConversationState {
   id: string;
   line_user_id: string;
@@ -156,4 +162,6 @@ export type PostbackAction =
   | { action: 'view_summary_month'; year: number; month: number }
   | { action: 'ai_advice' }
   | { action: 'my_categories' }
+  | { action: 'view_recurring_timeline' }
+  | { action: 'timeline_pay'; id: string }
   | { action: 'page'; page_type: string; page: number };

@@ -146,6 +146,15 @@ export async function handlePostback(event: PostbackEvent): Promise<void> {
       await recurringFlow.handleReminderSnooze(replyToken, lineUserId, action.id, action.days);
       break;
 
+    // === Recurring Timeline ===
+    case 'view_recurring_timeline':
+      await summaryFlow.showRecurringTimeline(replyToken, lineUserId);
+      break;
+
+    case 'timeline_pay':
+      await recurringFlow.handleReminderPaid(replyToken, lineUserId, action.id);
+      break;
+
     // === Summary ===
     case 'view_summary':
       await summaryFlow.showSummary(replyToken, lineUserId);

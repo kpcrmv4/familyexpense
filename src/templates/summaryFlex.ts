@@ -1,64 +1,87 @@
-import { ThemeColors, GeminiRecommendation } from '../types';
+import { ThemeColors, GeminiRecommendation, RecurringWithStatus } from '../types';
 import { createFlexMessage, createBubble, createHeader, createButton, createTextRow, createSeparator, createSpacer } from './flexMessages';
 import { formatCurrency, getThaiMonthYear, getCurrentThaiMonth } from '../utils/formatters';
 import { getTransactionColors } from '../utils/themeColors';
 
-export function monthlySummaryMessage(
+// ===== Category Row Helper =====
+
+function categoryRow(icon: string, name: string, total: number, color: string): any {
+  return {
+    type: 'box',
+    layout: 'horizontal',
+    contents: [
+      { type: 'text', text: `${icon} ${name}`, size: 'xs', color: '#6B7280', flex: 1 },
+      { type: 'text', text: `฿${formatCurrency(total)}`, size: 'xs', color, align: 'end', weight: 'bold' },
+    ],
+  };
+}
+
+// ===== Bubble 1: Summary =====
+
+function summaryBubble(
   summary: { total_income: number; total_expense: number; balance: number },
   categoryBreakdown: { category_name: string; icon: string; type: string; total: number }[],
   theme: ThemeColors,
-  year?: number,
-  month?: number
+  displayMonth: string
 ): any {
-  const now = new Date();
-  const displayMonth = year && month ? getThaiMonthYear(year, month) : getCurrentThaiMonth();
   const incomeColors = getTransactionColors('income');
   const expenseColors = getTransactionColors('expense');
 
-  const expenseCategories = categoryBreakdown
-    .filter((c) => c.type === 'expense')
-    .slice(0, 5);
+  // Ratio bar
+  const total = summary.total_income + summary.total_expense;
+  const incomePercent = total > 0 ? Math.round((summary.total_income / total) * 100) : 50;
+  const expensePercent = 100 - incomePercent;
 
-  const categoryItems: any[] = expenseCategories.length > 0
+  const ratioBar: any = {
+    type: 'box',
+    layout: 'vertical',
+    contents: [
+      {
+        type: 'box',
+        layout: 'horizontal',
+        contents: [
+          { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#10B981', height: '8px', flex: incomePercent || 1 },
+          { type: 'box', layout: 'vertical', contents: [], backgroundColor: '#EF4444', height: '8px', flex: expensePercent || 1 },
+        ],
+        cornerRadius: 'md',
+      },
+      {
+        type: 'box',
+        layout: 'horizontal',
+        contents: [
+          { type: 'text', text: `รายรับ ${incomePercent}%`, size: 'xxs', color: '#10B981', flex: 1 },
+          { type: 'text', text: `รายจ่าย ${expensePercent}%`, size: 'xxs', color: '#EF4444', align: 'end', flex: 1 },
+        ],
+      },
+    ],
+    spacing: 'xs',
+  };
+
+  // Expense categories (top 5)
+  const expenseCategories = categoryBreakdown.filter((c) => c.type === 'expense').slice(0, 5);
+  const expenseCatItems: any[] = expenseCategories.length > 0
     ? expenseCategories.flatMap((cat, i) => [
         ...(i > 0 ? [createSpacer('xs')] : []),
-        {
-          type: 'box',
-          layout: 'horizontal',
-          contents: [
-            {
-              type: 'text',
-              text: `${cat.icon} ${cat.category_name}`,
-              size: 'xs',
-              color: '#6B7280',
-              flex: 1,
-            },
-            {
-              type: 'text',
-              text: `฿${formatCurrency(cat.total)}`,
-              size: 'xs',
-              color: '#EF4444',
-              align: 'end',
-              weight: 'bold',
-            },
-          ],
-        },
+        categoryRow(cat.icon, cat.category_name, cat.total, '#EF4444'),
       ])
-    : [{
-        type: 'text',
-        text: 'ยังไม่มีรายการ',
-        size: 'xs',
-        color: '#9CA3AF',
-        align: 'center',
-      }];
+    : [{ type: 'text', text: 'ยังไม่มีรายการ', size: 'xs', color: '#9CA3AF', align: 'center' }];
 
-  return createFlexMessage('สรุปรายรับรายจ่าย', createBubble({
+  // Income categories (top 3)
+  const incomeCategories = categoryBreakdown.filter((c) => c.type === 'income').slice(0, 3);
+  const incomeCatItems: any[] = incomeCategories.length > 0
+    ? incomeCategories.flatMap((cat, i) => [
+        ...(i > 0 ? [createSpacer('xs')] : []),
+        categoryRow(cat.icon, cat.category_name, cat.total, '#10B981'),
+      ])
+    : [{ type: 'text', text: 'ยังไม่มีรายการ', size: 'xs', color: '#9CA3AF', align: 'center' }];
+
+  return createBubble({
     header: createHeader('สรุปรายรับรายจ่าย', displayMonth, '📊'),
     body: {
       type: 'box',
       layout: 'vertical',
       contents: [
-        // Income/Expense/Balance cards
+        // Income / Expense cards
         {
           type: 'box',
           layout: 'horizontal',
@@ -90,6 +113,7 @@ export function monthlySummaryMessage(
           ],
           spacing: 'sm',
         },
+        // Balance
         createSpacer('sm'),
         {
           type: 'box',
@@ -109,18 +133,23 @@ export function monthlySummaryMessage(
           cornerRadius: 'md',
           paddingAll: 'md',
         },
+        // Ratio bar
+        createSpacer('sm'),
+        ratioBar,
+        // Expense categories
         createSpacer('md'),
         createSeparator(),
         createSpacer('md'),
-        {
-          type: 'text',
-          text: '📊 รายจ่ายตามหมวดหมู่ (Top 5)',
-          size: 'xs',
-          weight: 'bold',
-          color: '#1A1A2E',
-        },
+        { type: 'text', text: '📤 รายจ่ายตามหมวดหมู่ (Top 5)', size: 'xs', weight: 'bold', color: '#1A1A2E' },
         createSpacer('sm'),
-        ...categoryItems,
+        ...expenseCatItems,
+        // Income categories
+        createSpacer('md'),
+        createSeparator(),
+        createSpacer('md'),
+        { type: 'text', text: '📥 รายรับตามหมวดหมู่ (Top 3)', size: 'xs', weight: 'bold', color: '#1A1A2E' },
+        createSpacer('sm'),
+        ...incomeCatItems,
       ],
       paddingAll: 'lg',
       spacing: 'none' as any,
@@ -134,8 +163,147 @@ export function monthlySummaryMessage(
       paddingAll: 'lg',
     },
     theme,
-  }));
+  });
 }
+
+// ===== Bubble 2: Recurring Timeline =====
+
+function recurringTimelineBubble(
+  items: RecurringWithStatus[],
+  theme: ThemeColors,
+  displayMonth: string
+): any {
+  const paidCount = items.filter((i) => i.status === 'paid').length;
+  const totalCount = items.length;
+  const remainingAmount = items
+    .filter((i) => i.status !== 'paid')
+    .reduce((sum, i) => sum + Number(i.amount), 0);
+
+  const statusIcon = (s: string) => s === 'paid' ? '✅' : s === 'overdue' ? '🔴' : '⏳';
+  const statusColor = (s: string) => s === 'paid' ? '#10B981' : s === 'overdue' ? '#EF4444' : '#F59E0B';
+
+  const itemRows: any[] = items.length > 0
+    ? items.flatMap((item, i) => [
+        ...(i > 0 ? [createSpacer('xs')] : []),
+        {
+          type: 'box',
+          layout: 'horizontal',
+          contents: [
+            { type: 'text', text: statusIcon(item.status), size: 'sm', flex: 0 },
+            {
+              type: 'box',
+              layout: 'vertical',
+              contents: [
+                { type: 'text', text: item.name, size: 'xs', weight: 'bold', color: '#1A1A2E' },
+                { type: 'text', text: `วันที่ ${item.due_day}`, size: 'xxs', color: '#9CA3AF' },
+              ],
+              flex: 1,
+            },
+            {
+              type: 'text',
+              text: item.is_variable
+                ? (Number(item.amount) > 0 ? `~฿${formatCurrency(Number(item.amount))}` : 'ไม่ระบุ')
+                : `฿${formatCurrency(Number(item.amount))}`,
+              size: 'xs',
+              weight: 'bold',
+              color: statusColor(item.status),
+              align: 'end',
+              gravity: 'center',
+            },
+          ],
+          spacing: 'sm',
+          backgroundColor: item.status === 'overdue' ? '#FEF2F2' : '#F9FAFB',
+          cornerRadius: 'md',
+          paddingAll: 'sm',
+        },
+      ])
+    : [{ type: 'text', text: 'ยังไม่มีค่าใช้จ่ายประจำเดือน', size: 'sm', color: '#9CA3AF', align: 'center' }];
+
+  // Summary row
+  const summaryRow: any = {
+    type: 'box',
+    layout: 'horizontal',
+    contents: [
+      { type: 'text', text: `จ่ายแล้ว ${paidCount}/${totalCount}`, size: 'xs', color: '#6B7280', flex: 1 },
+      { type: 'text', text: `คงเหลือ ฿${formatCurrency(remainingAmount)}`, size: 'xs', color: '#EF4444', align: 'end', weight: 'bold' },
+    ],
+    backgroundColor: '#F3F4F6',
+    cornerRadius: 'md',
+    paddingAll: 'sm',
+  };
+
+  const hasPayable = items.some((i) => i.status !== 'paid');
+
+  const footerButtons: any[] = [];
+  if (hasPayable) {
+    footerButtons.push(
+      createButton('✅ ชำระ', JSON.stringify({ action: 'recurring_menu' }), 'primary', '#10B981')
+    );
+  }
+  footerButtons.push(
+    createButton('➕ เพิ่มรายการ', JSON.stringify({ action: 'recurring_add' }), 'secondary')
+  );
+
+  return createBubble({
+    header: createHeader('ค่าใช้จ่ายประจำเดือน', displayMonth, '📅'),
+    body: {
+      type: 'box',
+      layout: 'vertical',
+      contents: [
+        ...itemRows,
+        createSpacer('sm'),
+        createSeparator(),
+        createSpacer('sm'),
+        summaryRow,
+      ],
+      paddingAll: 'lg',
+      spacing: 'none' as any,
+    },
+    footer: {
+      type: 'box',
+      layout: 'vertical',
+      contents: footerButtons,
+      paddingAll: 'lg',
+      spacing: 'sm',
+    },
+    theme,
+  });
+}
+
+// ===== Public: Monthly Summary (carousel) =====
+
+export function monthlySummaryMessage(
+  summary: { total_income: number; total_expense: number; balance: number },
+  categoryBreakdown: { category_name: string; icon: string; type: string; total: number }[],
+  recurringItems: RecurringWithStatus[],
+  theme: ThemeColors,
+  year?: number,
+  month?: number
+): any {
+  const displayMonth = year && month ? getThaiMonthYear(year, month) : getCurrentThaiMonth();
+
+  const bubble1 = summaryBubble(summary, categoryBreakdown, theme, displayMonth);
+  const bubble2 = recurringTimelineBubble(recurringItems, theme, displayMonth);
+
+  return createFlexMessage('สรุปรายรับรายจ่าย', {
+    type: 'carousel',
+    contents: [bubble1, bubble2],
+  });
+}
+
+// ===== Public: Recurring Timeline (standalone) =====
+
+export function recurringTimelineMessage(
+  items: RecurringWithStatus[],
+  theme: ThemeColors,
+  year?: number,
+  month?: number
+): any {
+  const displayMonth = year && month ? getThaiMonthYear(year, month) : getCurrentThaiMonth();
+  return createFlexMessage('ค่าใช้จ่ายประจำเดือน', recurringTimelineBubble(items, theme, displayMonth));
+}
+
+// ===== AI Advice =====
 
 export function aiAdviceMessage(
   advice: GeminiRecommendation,
@@ -161,26 +329,14 @@ export function aiAdviceMessage(
           type: 'box',
           layout: 'vertical',
           contents: [
-            {
-              type: 'text',
-              text: advice.summary,
-              size: 'sm',
-              color: '#1A1A2E',
-              wrap: true,
-            },
+            { type: 'text', text: advice.summary, size: 'sm', color: '#1A1A2E', wrap: true },
           ],
           backgroundColor: '#F0F9FF',
           cornerRadius: 'lg',
           paddingAll: 'lg',
         },
         createSpacer('md'),
-        {
-          type: 'text',
-          text: '💡 คำแนะนำ',
-          size: 'sm',
-          weight: 'bold',
-          color: '#1A1A2E',
-        },
+        { type: 'text', text: '💡 คำแนะนำ', size: 'sm', weight: 'bold', color: '#1A1A2E' },
         createSpacer('sm'),
         ...tipItems,
       ],
@@ -191,6 +347,8 @@ export function aiAdviceMessage(
   }));
 }
 
+// ===== Error =====
+
 export function errorMessage(text: string): any {
   return createFlexMessage('เกิดข้อผิดพลาด', createBubble({
     header: createHeader('เกิดข้อผิดพลาด', '', '❌'),
@@ -198,14 +356,7 @@ export function errorMessage(text: string): any {
       type: 'box',
       layout: 'vertical',
       contents: [
-        {
-          type: 'text',
-          text,
-          size: 'sm',
-          color: '#6B7280',
-          align: 'center',
-          wrap: true,
-        },
+        { type: 'text', text, size: 'sm', color: '#6B7280', align: 'center', wrap: true },
       ],
       paddingAll: 'xl',
     },

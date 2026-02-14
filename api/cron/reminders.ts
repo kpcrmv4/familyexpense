@@ -11,7 +11,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const today = new Date();
+    const today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }));
 
     // Auto-deactivate expired recurring items
     const deactivatedCount = await deactivateExpired(today);
